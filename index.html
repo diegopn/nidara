@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Nidara: explore publicações científicas e descubra conhecimento aberto.">
+  <meta name="theme-color" content="#102b37">
+  <title>Nidara — Explore o conhecimento</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <script type="module" src="./js/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+  <header class="topbar"><a class="brand" href="./" aria-label="Nidara, início"><span aria-hidden="true">✳</span> Nidara</a><span class="topnote">Descoberta científica aberta</span></header>
+  <main id="conteudo">
+    <section class="hero" aria-labelledby="titulo">
+      <p class="eyebrow">Explore. Conecte. Descubra.</p>
+      <h1 id="titulo">Conhecimento sem fronteiras.</h1>
+      <p class="lead">Pesquise publicações científicas em fontes abertas, em uma interface simples e transparente.</p>
+      <form id="search-form" role="search">
+        <label for="query">O que você quer descobrir?</label>
+        <div class="searchline"><input id="query" name="q" type="search" minlength="2" maxlength="250" placeholder="Ex.: privacy by design, biodiversidade, inteligência artificial" autocomplete="off" required><button type="submit">Pesquisar <span aria-hidden="true">→</span></button></div>
+        <div class="filters"><label for="year">Publicado desde <input id="year" name="year" type="number" min="1900" max="2100" placeholder="Qualquer ano"></label><label for="sort">Ordenar por <select id="sort" name="sort"><option value="relevance">Relevância</option><option value="newest">Mais recentes</option><option value="cited">Mais citados</option></select></label></div>
+      </form>
+    </section>
+    <section class="results" aria-labelledby="results-title">
+      <div class="results-head"><div><p class="eyebrow">Resultados</p><h2 id="results-title">Comece com uma pesquisa</h2></div><span id="count"></span></div>
+      <p id="status" role="status" aria-live="polite">As buscas consultam a API pública do OpenAlex. Outras fontes serão adicionadas progressivamente.</p>
+      <div id="results-list" class="results-list"></div>
+      <div class="more"><button id="more" type="button" hidden>Carregar mais resultados</button></div>
+    </section>
+  </main>
+  <footer><span>Nidara · Projeto aberto em desenvolvimento</span><a href="https://github.com/diegopn/nidara" rel="noopener noreferrer">Código no GitHub ↗</a></footer>
+</body>
+</html>
