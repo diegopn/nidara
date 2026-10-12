@@ -51,14 +51,26 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertTrue(app_ids)
         self.assertFalse(app_ids - set(self.parser.ids), f"Missing app elements: {sorted(app_ids - set(self.parser.ids))}")
 
+    def test_hidden_controls_remain_hidden_when_component_styles_set_display(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        self.assertRegex(css, r"\[hidden\]\s*\{[^}]*display:\s*none\s*!important")
+
     def test_labeled_controls_have_matching_ids(self):
         self.assertFalse(set(self.parser.labels_for) - set(self.parser.ids))
 
     def test_site_defaults_to_portuguese_and_translates_every_message(self):
-        language_select = re.search(r'<select\b[^>]*id="language-switcher"[^>]*>(.*?)</select>', self.html, re.DOTALL)
-        self.assertIsNotNone(language_select, "The site needs an accessible language selector")
-        languages = re.findall(r'<option\s+value="([^"]+)"', language_select.group(1))
+        language_select = re.search(r'<nav\b[^>]*id="language-switcher"[^>]*>(.*?)</nav>', self.html, re.DOTALL)
+        self.assertIsNotNone(language_select, "The site needs a clear, accessible language navigation")
+        languages = re.findall(r'data-locale="([^"]+)"', language_select.group(1))
         self.assertEqual(languages, ["pt-BR", "en", "es"])
+        self.assertIn('aria-current="page"', language_select.group(1))
+        self.assertEqual(
+            {locale: href for href, locale in re.findall(r'<a href="([^"]+)" data-locale="([^"]+)"', language_select.group(1))},
+            {"pt-BR": "./", "en": "./en/", "es": "./es/"},
+        )
+        self.assertIn('Português', language_select.group(1))
+        self.assertIn('English', language_select.group(1))
+        self.assertIn('Español', language_select.group(1))
         self.assertRegex(self.html, r'<html\s+lang="pt-BR">')
 
         messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
@@ -71,8 +83,28 @@ class SiteIntegrityTests(unittest.TestCase):
         for source in (self.site / "js").rglob("*.js"):
             code = source.read_text(encoding="utf-8")
             referenced_keys.update(re.findall(r'\bt\("([\w-]+)"', code))
-        plural_keys = {suffix for base in ("savedCount", "citationCount") for suffix in (base + "One", base + "Other")}
+        plural_keys = {suffix for base in ("savedCount", "citationCount", "authorWorkCount") for suffix in (base + "One", base + "Other")}
         self.assertFalse((referenced_keys | plural_keys) - keys[0], f"Missing translation messages: {sorted((referenced_keys | plural_keys) - keys[0])}")
+
+    def test_search_results_are_split_into_publications_authors_and_datasets(self):
+        for element_id in ("publications-tab", "authors-tab", "datasets-tab", "authors-scope", "results-list"):
+            self.assertIn(f'id="{element_id}"', self.html, f"Missing result area {element_id}")
+        self.assertIn('role="tablist"', self.html)
+        self.assertIn('data-view="authors"', self.html)
+        self.assertIn('data-view="datasets"', self.html)
+        self.assertIn('data-i18n="authorScope"', self.html)
+
+    def test_source_changes_refresh_an_existing_search(self):
+        self.assertRegex(
+            self.app,
+            r'input\[name="sources"\][\s\S]*?addEventListener\("change"',
+            "Changing a source must have an explicit live behavior",
+        )
+        self.assertIn("form.requestSubmit()", self.app)
+
+    def test_author_and_saved_counts_match_the_visible_scope(self):
+        self.assertRegex(self.app, r'selectedAuthor\s*\?\s*t\("authorWorksCount"')
+        self.assertIn('pluralMessage("savedCount", items.length)', self.app)
 
     def test_locale_routes_keep_canonical_language_and_resolve_assets(self):
         for locale in ("en", "es"):
@@ -85,6 +117,11 @@ class SiteIntegrityTests(unittest.TestCase):
             self.assertIn('src="../js/app.js"', html)
             self.assertIn('href="../"', html)
             self.assertIn('href="../LICENSE"', html)
+            language_nav = re.search(r'<nav\b[^>]*id="language-switcher"[^>]*>(.*?)</nav>', html, re.DOTALL)
+            self.assertIsNotNone(language_nav)
+            language_links = {target_locale: href for href, target_locale in re.findall(r'<a href="([^"]+)" data-locale="([^"]+)"', language_nav.group(1))}
+            expected_links = {"pt-BR": "../", "en": "./" if locale == "en" else "../en/", "es": "./" if locale == "es" else "../es/"}
+            self.assertEqual(language_links, expected_links, f"Broken locale switch from /{locale}/")
             for asset in ("../css/style.css", "../js/app.js"):
                 self.assertTrue((route.parent / asset).resolve().is_file(), f"Broken {locale} asset: {asset}")
 

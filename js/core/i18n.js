@@ -18,10 +18,13 @@ export function setLanguage(language) {
     node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
   }
 
+  for (const link of document.querySelectorAll("#language-switcher [data-locale]")) {
+    if (link.dataset.locale === currentLanguage) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+
   document.title = t("documentTitle");
   document.querySelector('meta[name="description"]')?.setAttribute("content", t("description"));
-  const selector = document.querySelector("#language-switcher");
-  if (selector) selector.value = currentLanguage;
   return currentLanguage;
 }
 
@@ -42,10 +45,4 @@ export function pluralMessage(key, count) {
   const category = new Intl.PluralRules(currentLanguage).select(count);
   const messageKey = category === "one" ? key + "One" : key + "Other";
   return t(messageKey, { count: formatNumber(count) });
-}
-
-export function basePath() {
-  const appScript = document.querySelector('script[type="module"][src]');
-  if (appScript) return new URL(appScript.src).pathname.replace(/js\/app\.js$/, "");
-  return new URL(document.querySelector('link[rel="canonical"]').href).pathname;
 }

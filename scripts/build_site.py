@@ -35,8 +35,21 @@ def build_site(output: Path) -> None:
         page = source.replace('<html lang="pt-BR">', f'<html lang="{locale}">', 1)
         locale_path = "" if locale == "pt-BR" else locale.lower() + "/"
         page = CANONICAL.sub(rf'\1https://diegopn.github.io{base_path}{locale_path}\2', page, count=1)
+        for target in ("pt-BR", "en", "es"):
+            if target == locale:
+                relative_path = "./"
+            elif locale == "pt-BR":
+                relative_path = f"./{target.lower()}/"
+            else:
+                relative_path = "../" if target == "pt-BR" else f"../{target.lower()}/"
+            source_path = "./" if target == "pt-BR" else f"./{target.lower()}/"
+            page = page.replace(
+                f'href="{source_path}" data-locale="{target}"',
+                f'href="{relative_path}" data-locale="{target}"',
+                1,
+            )
         if locale != "pt-BR":
-            page = page.replace('href="./"', 'href="../"', 1)
+            page = page.replace('<a class="brand" href="./"', '<a class="brand" href="../"', 1)
             page = page.replace('href="./css/style.css"', 'href="../css/style.css"', 1)
             page = page.replace('src="./js/app.js"', 'src="../js/app.js"', 1)
             page = page.replace('href="./LICENSE"', 'href="../LICENSE"', 1)

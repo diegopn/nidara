@@ -1,6 +1,6 @@
 import { exportWorks } from "./core/export.js";
 import { federatedSearch } from "./core/federated-search.js";
-import { basePath, formatNumber, getLanguage, pluralMessage, setLanguage, t } from "./core/i18n.js";
+import { formatNumber, getLanguage, pluralMessage, setLanguage, t } from "./core/i18n.js";
 import { deduplicateWorks, normalizeDoi, safeExternalUrl, workKey } from "./core/work-utils.js";
 
 const FAVORITES_KEY = "nidara:favorites:v1";
@@ -23,6 +23,15 @@ const shareUrl = document.querySelector("#share-url");
 const exportButton = document.querySelector("#export-button");
 const exportFormat = document.querySelector("#export-format");
 const languageSwitcher = document.querySelector("#language-switcher");
+const viewTabs = [...document.querySelectorAll(".result-tab")];
+const viewNote = document.querySelector("#view-note");
+const authorsScope = document.querySelector("#authors-scope");
+const authorsMore = document.querySelector("#authors-more");
+const viewCounts = {
+  publications: document.querySelector("#publications-count"),
+  authors: document.querySelector("#authors-count"),
+  datasets: document.querySelector("#datasets-count")
+};
 
 let controller;
 let requestId = 0;
@@ -33,6 +42,9 @@ let pageNumbers = {};
 let providerProgress = {};
 let providerTotals = {};
 let savedView = false;
+let activeView = "publications";
+let selectedAuthor = "";
+let showAllAuthors = false;
 
 function element(tag, className, value) {
   const node = document.createElement(tag);
@@ -92,34 +104,159 @@ function refreshSavedCount() {
   savedToggle.setAttribute("aria-pressed", String(savedView));
 }
 
-function currentItems() {
-  return savedView ? [...favorites.values()] : loadedItems;
+function isDataset(work) {
+  return String(work.type || "").toLowerCase() === "dataset";
+}
+
+function publicationItems(works) {
+  return works.filter(work => !isDataset(work));
+}
+
+function datasetItems(works) {
+  return works.filter(isDataset);
+}
+
+function authorKey(name) {
+  return name.trim().replace(/\s+/g, " ").normalize("NFKC").toLocaleLowerCase(getLanguage());
+}
+
+function summarizeAuthors(works) {
+  const authors = new Map();
+  for (const work of works) {
+    const namesInWork = new Set();
+    for (const rawName of work.authors || []) {
+      const name = typeof rawName === "string" ? rawName.trim().replace(/\s+/g, " ") : "";
+      const key = authorKey(name);
+      if (!key || namesInWork.has(key)) continue;
+      namesInWork.add(key);
+      const author = authors.get(key) || { name, records: 0, citations: 0, citationRecords: 0 };
+      author.records += 1;
+      if (Number.isFinite(work.citations)) {
+        author.citations += work.citations;
+        author.citationRecords += 1;
+      }
+      authors.set(key, author);
+    }
+  }
+  return [...authors.values()].sort((a, b) =>
+    b.records - a.records || b.citations - a.citations || a.name.localeCompare(b.name, getLanguage()));
+}
+
+function updateViewControls(works, publications, authors) {
+  const datasets = datasetItems(works);
+  viewCounts.publications.textContent = formatNumber(publications.length);
+  viewCounts.authors.textContent = formatNumber(authors.length);
+  viewCounts.datasets.textContent = formatNumber(datasets.length);
+  for (const tab of viewTabs) {
+    const selected = tab.dataset.view === activeView;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+  }
+  list.setAttribute("aria-labelledby", `${activeView}-tab`);
+  viewNote.textContent = t({
+    publications: "publicationViewNote",
+    authors: "authorViewNote",
+    datasets: "datasetViewNote"
+  }[activeView]);
+  authorsScope.hidden = activeView !== "authors";
+  authorsScope.textContent = t(savedView ? "authorScopeSaved" : "authorScope", {
+    count: formatNumber(publications.length)
+  });
+  const loadMoreLabel = more.querySelector("[data-i18n]");
+  if (loadMoreLabel) loadMoreLabel.textContent = t(activeView === "authors" ? "loadMoreAuthors" : "loadMore");
+}
+
+function renderAuthors(authors) {
+  authorsMore.hidden = authors.length <= 12 || showAllAuthors;
+  authorsMore.textContent = t("showAllAuthors", { count: formatNumber(authors.length) });
+  if (!authors.length) return false;
+
+  const grid = element("div", "author-grid");
+  const visibleAuthors = showAllAuthors ? authors : authors.slice(0, 12);
+  for (const [index, author] of visibleAuthors.entries()) {
+    const card = element("article", "author-card");
+    card.append(element("span", "author-rank", String(index + 1).padStart(2, "0")));
+    card.append(element("h3", null, author.name));
+    const records = pluralMessage("authorWorkCount", author.records);
+    const citations = author.citationRecords
+      ? pluralMessage("citationCount", author.citations)
+      : t("citationUnavailable");
+    card.append(element("p", "author-metrics", `${records} · ${citations}`));
+    const button = element("button", "author-results", t("openAuthorResults"));
+    button.type = "button";
+    button.addEventListener("click", () => {
+      selectedAuthor = author.name;
+      activeView = "publications";
+      showAllAuthors = false;
+      updateShareUrl(activeFilters);
+      renderCurrentItems();
+      setStatus(t("searchResultsStatus"));
+      title.focus?.();
+    });
+    card.append(button);
+    grid.append(card);
+  }
+  list.append(grid);
+  return true;
+}
+
+function visibleWorks(works) {
+  const matchingType = activeView === "datasets" ? datasetItems(works) : publicationItems(works);
+  return activeView === "authors"
+    ? []
+    : selectedAuthor
+      ? matchingType.filter(work => (work.authors || []).some(name => authorKey(name) === authorKey(selectedAuthor)))
+      : matchingType;
+}
+
+function renderEmpty(titleKey, textKey) {
+  const empty = element("div", "empty-state");
+  empty.append(element("h3", null, t(titleKey)), element("p", null, t(textKey)));
+  list.append(empty);
 }
 
 function renderCurrentItems() {
-  const works = currentItems();
+  const items = savedView ? [...favorites.values()] : loadedItems;
+  const publications = publicationItems(items);
+  const authors = summarizeAuthors(publications);
+  const works = visibleWorks(items);
   list.replaceChildren();
-  if (!works.length) {
-    const empty = element("div", "empty-state");
-    empty.append(
-      element("h3", null, savedView ? t("favoritesEmptyTitle") : t("resultsEmptyTitle")),
-      element("p", null, savedView
-        ? t("favoritesEmptyText")
-        : t("resultsEmptyText"))
-    );
-    list.append(empty);
+  updateViewControls(items, publications, authors);
+  authorsMore.hidden = true;
+
+  if (activeView === "authors") {
+    if (!renderAuthors(authors)) {
+      renderEmpty("authorsEmptyTitle", savedView ? "favoritesEmptyText" : "resultsEmptyText");
+    }
+  } else if (!works.length) {
+    const emptyTitle = savedView
+      ? "favoritesEmptyTitle"
+      : activeFilters && activeView === "datasets" ? "datasetsEmptyTitle" : "resultsEmptyTitle";
+    renderEmpty(emptyTitle, savedView ? "favoritesEmptyText" : "resultsEmptyText");
   } else {
     const fragment = document.createDocumentFragment();
     for (const work of works) fragment.append(resultCard(work));
     list.append(fragment);
   }
 
-  title.textContent = savedView ? t("favoritesTitle") : activeFilters ? t("resultsFor", { query: activeFilters.query }) : t("initialTitle");
+  title.textContent = savedView
+    ? t("favoritesTitle")
+    : selectedAuthor
+      ? t("worksByAuthor", { name: selectedAuthor })
+      : !activeFilters
+        ? t("initialTitle")
+        : t({ publications: "publicationsFor", authors: "authorsFor", datasets: "datasetsFor" }[activeView], { query: activeFilters.query });
   count.textContent = savedView
-    ? pluralMessage("savedCount", works.length)
-    : works.length ? t("loadedCount", { loaded: formatNumber(works.length), total: formatNumber(totalMatches()) }) : "";
+    ? pluralMessage("savedCount", items.length)
+    : selectedAuthor
+      ? t("authorWorksCount", { name: selectedAuthor, count: formatNumber(works.length) })
+      : activeView === "authors"
+        ? t("authorResultsCount", { authors: formatNumber(authors.length), records: formatNumber(publications.length) })
+        : works.length
+          ? t("loadedCount", { loaded: formatNumber(works.length), total: formatNumber(totalMatches()) })
+          : "";
   shareButton.disabled = !activeFilters || savedView;
-  exportButton.disabled = works.length === 0;
+  exportButton.disabled = works.length === 0 || activeView === "authors";
   more.hidden = savedView || !Object.values(providerProgress).some(progress => progress.hasMore);
 }
 
@@ -234,22 +371,23 @@ function readFiltersFromForm() {
     query,
     yearFrom,
     yearTo,
-    type: document.querySelector("#resource-type").value,
     sort: document.querySelector("#sort").value,
     sourceIds
   };
 }
 
 function updateShareUrl(filters) {
+  if (!filters) return;
   const url = new URL(location.href);
   url.hash = "";
-  for (const key of ["q", "from", "to", "type", "sort", "sources"]) url.searchParams.delete(key);
+  for (const key of ["q", "from", "to", "type", "sort", "sources", "view", "author"]) url.searchParams.delete(key);
   url.searchParams.set("q", filters.query);
   if (filters.yearFrom) url.searchParams.set("from", filters.yearFrom);
   if (filters.yearTo) url.searchParams.set("to", filters.yearTo);
-  if (filters.type !== "all") url.searchParams.set("type", filters.type);
   if (filters.sort !== "relevance") url.searchParams.set("sort", filters.sort);
   url.searchParams.set("sources", filters.sourceIds.join(","));
+  if (activeView !== "publications") url.searchParams.set("view", activeView);
+  if (selectedAuthor) url.searchParams.set("author", selectedAuthor);
   url.searchParams.delete("lang");
   history.replaceState(null, "", url);
   shareFallback.hidden = true;
@@ -262,8 +400,11 @@ function filtersFromUrl() {
   queryInput.value = query.slice(0, 250);
   yearFromInput.value = validYear(url.searchParams.get("from")) ? url.searchParams.get("from") : "";
   yearToInput.value = validYear(url.searchParams.get("to")) ? url.searchParams.get("to") : "";
-  const type = url.searchParams.get("type");
-  if (["article", "preprint", "dataset", "book"].includes(type)) document.querySelector("#resource-type").value = type;
+  const view = url.searchParams.get("view");
+  activeView = ["publications", "authors", "datasets"].includes(view)
+    ? view
+    : url.searchParams.get("type") === "dataset" ? "datasets" : "publications";
+  selectedAuthor = activeView === "publications" ? (url.searchParams.get("author") || "").slice(0, 250) : "";
   const sort = url.searchParams.get("sort");
   if (["newest", "cited"].includes(sort)) document.querySelector("#sort").value = sort;
   const sourceParam = url.searchParams.get("sources");
@@ -304,12 +445,26 @@ function resultStatus(result, append) {
   }
 }
 
+function selectView(view) {
+  if (!["publications", "authors", "datasets"].includes(view) || activeView === view) return;
+  const previousType = activeView === "datasets";
+  activeView = view;
+  selectedAuthor = "";
+  showAllAuthors = false;
+  refreshSavedCount();
+  updateShareUrl(activeFilters);
+  if (savedView) renderCurrentItems();
+  else if (activeFilters && previousType !== (activeView === "datasets")) runSearch();
+  else renderCurrentItems();
+}
+
 async function runSearch(append = false) {
   if (!activeFilters) return;
   if (controller) controller.abort();
   controller = new AbortController();
   const signal = controller.signal;
   const currentRequest = ++requestId;
+  const searchFilters = { ...activeFilters, type: activeView === "datasets" ? "dataset" : "all" };
 
   if (!append) {
     loadedItems = [];
@@ -332,7 +487,7 @@ async function runSearch(append = false) {
   setStatus(append ? t("loadingMore") : t("searching"));
 
   try {
-    const result = await federatedSearch({ filters: activeFilters, pages, sourceIds, signal });
+    const result = await federatedSearch({ filters: searchFilters, pages, sourceIds, signal });
     if (signal.aborted || currentRequest !== requestId) return;
 
     for (const source of result.sources) {
@@ -394,6 +549,8 @@ form.addEventListener("submit", event => {
   const filters = readFiltersFromForm();
   if (!filters) return;
   savedView = false;
+  selectedAuthor = "";
+  showAllAuthors = false;
   refreshSavedCount();
   activeFilters = filters;
   updateShareUrl(filters);
@@ -401,11 +558,38 @@ form.addEventListener("submit", event => {
 });
 
 more.addEventListener("click", () => runSearch(true));
+authorsMore.addEventListener("click", () => {
+  showAllAuthors = true;
+  renderCurrentItems();
+});
+for (const tab of viewTabs) {
+  tab.addEventListener("click", () => selectView(tab.dataset.view));
+  tab.addEventListener("keydown", event => {
+    const currentIndex = viewTabs.indexOf(tab);
+    const nextIndex = event.key === "ArrowRight" ? (currentIndex + 1) % viewTabs.length
+      : event.key === "ArrowLeft" ? (currentIndex - 1 + viewTabs.length) % viewTabs.length
+        : -1;
+    if (nextIndex < 0) return;
+    event.preventDefault();
+    viewTabs[nextIndex].focus();
+    viewTabs[nextIndex].click();
+  });
+}
+for (const input of form.querySelectorAll('input[name="sources"]')) {
+  input.addEventListener("change", () => {
+    if (!form.querySelector('input[name="sources"]:checked')) {
+      input.checked = true;
+      setStatus(t("sourceRequired"));
+      return;
+    }
+    if (activeFilters && !savedView) form.requestSubmit();
+  });
+}
 savedToggle.addEventListener("click", toggleSavedView);
 shareButton.addEventListener("click", shareSearch);
 exportButton.addEventListener("click", () => {
   try {
-    exportWorks(currentItems(), exportFormat.value, savedView ? t("favoritesTitle") : activeFilters?.query);
+    exportWorks(visibleWorks(savedView ? [...favorites.values()] : loadedItems), exportFormat.value, savedView ? t("favoritesTitle") : activeFilters?.query);
     setStatus(t("exportReady"));
   } catch (error) {
     setStatus(t("exportError"));
@@ -414,12 +598,14 @@ exportButton.addEventListener("click", () => {
 
 function setupLanguage() {
   setLanguage(document.documentElement.lang);
-  languageSwitcher.addEventListener("change", () => {
-    const base = basePath();
-    const nextPath = languageSwitcher.value === "pt-BR" ? base : base + languageSwitcher.value.toLowerCase() + "/";
-    const nextUrl = new URL(location.href);
-    nextUrl.pathname = nextPath;
+  languageSwitcher.addEventListener("click", event => {
+    const link = event.target.closest("a[data-locale]");
+    if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const nextUrl = new URL(link.href);
+    nextUrl.search = location.search;
+    nextUrl.hash = location.hash;
     nextUrl.searchParams.delete("lang");
+    event.preventDefault();
     window.location.assign(nextUrl.href);
   });
 }
