@@ -1,35 +1,78 @@
+import { normalizeDoi, safeExternalUrl } from "../core/work-utils.js";
+
 const ENDPOINT = "https://api.openalex.org/works";
-export async function searchWorks({ query, year, sort = "relevance", page = 1, signal }) {
+const PAGE_SIZE = 15;
+const TYPES = { article: "article", preprint: "preprint", dataset: "dataset", book: "book" };
+
+export async function searchWorks({ query, yearFrom, yearTo, type = "all", sort = "relevance", page = 1, signal }) {
   const url = new URL(ENDPOINT);
   url.searchParams.set("search", query);
-  url.searchParams.set("per-page", "15");
+  url.searchParams.set("per_page", String(PAGE_SIZE));
   url.searchParams.set("page", String(page));
-  url.searchParams.set("select", "id,doi,display_name,publication_year,authorships,primary_location,cited_by_count,open_access,abstract_inverted_index");
-  if (year) url.searchParams.set("filter", "from_publication_date:" + year + "-01-01");
+  url.searchParams.set("select", "id,doi,display_name,publication_year,authorships,primary_location,cited_by_count,open_access,abstract_inverted_index,type");
+
+  const filters = [];
+  if (yearFrom) filters.push("from_publication_date:" + yearFrom + "-01-01");
+  if (yearTo) filters.push("to_publication_date:" + yearTo + "-12-31");
+  if (TYPES[type]) filters.push("type:" + TYPES[type]);
+  if (filters.length) url.searchParams.set("filter", filters.join(","));
   if (sort === "newest") url.searchParams.set("sort", "publication_date:desc");
   if (sort === "cited") url.searchParams.set("sort", "cited_by_count:desc");
+
   const response = await fetch(url, { signal, headers: { Accept: "application/json" } });
-  if (!response.ok) throw new Error("OpenAlex retornou HTTP " + response.status);
+  if (response.status === 409) {
+    const error = new Error("O acesso público do OpenAlex atingiu o limite sem chave de API.");
+    error.code = "api-key-required";
+    throw error;
+  }
+  if (!response.ok) {
+    const error = new Error("OpenAlex retornou HTTP " + response.status + ".");
+    error.status = response.status;
+    throw error;
+  }
+
   const data = await response.json();
-  return { total: data.meta?.count ?? 0, items: (data.results ?? []).map(normalizeWork) };
+  const total = Number(data.meta?.count) || 0;
+  const items = (Array.isArray(data.results) ? data.results : []).map(normalizeWork);
+  return { total, items, hasMore: page * PAGE_SIZE < total && items.length > 0 };
 }
-function abstractFromIndex(index) {
-  if (!index) return "";
-  const words = [];
-  for (const [word, positions] of Object.entries(index)) for (const position of positions) words[position] = word;
-  return words.join(" ").slice(0, 520);
-}
+
 function normalizeWork(work) {
+  const doi = normalizeDoi(work.doi);
+  const openAlexUrl = safeExternalUrl(work.id);
+  const url = doi
+    ? "https://doi.org/" + doi
+    : safeExternalUrl(work.primary_location?.landing_page_url) || openAlexUrl;
+  const authors = (work.authorships || []).slice(0, 8).map(entry => entry.author?.display_name).filter(Boolean);
+  const journal = work.primary_location?.source?.display_name || "";
+
   return {
-    id: work.id,
-    title: work.display_name || "Sem título",
-    year: work.publication_year,
-    authors: (work.authorships ?? []).slice(0, 5).map(a => a.author?.display_name).filter(Boolean),
-    journal: work.primary_location?.source?.display_name ?? "",
-    citations: work.cited_by_count ?? 0,
-    url: work.doi || work.primary_location?.landing_page_url || work.id,
-    openAccess: !!work.open_access?.is_oa,
+    id: openAlexUrl || doi,
+    providerId: "openalex",
+    title: typeof work.display_name === "string" && work.display_name.trim() ? work.display_name.trim() : "",
+    authors,
+    year: Number.isInteger(work.publication_year) ? work.publication_year : null,
+    journal,
+    type: typeof work.type === "string" ? work.type : "",
+    citations: Number.isFinite(work.cited_by_count) ? work.cited_by_count : null,
+    doi,
+    url: url || openAlexUrl || "https://openalex.org/",
+    openAccess: typeof work.open_access?.is_oa === "boolean" ? work.open_access.is_oa : null,
     abstract: abstractFromIndex(work.abstract_inverted_index),
-    provider: "OpenAlex"
+    sources: [{ id: "openalex", label: "OpenAlex" }],
+    provenance: { title: "OpenAlex", authors: "OpenAlex", year: "OpenAlex", journal: "OpenAlex", citations: "OpenAlex" }
   };
+}
+
+function abstractFromIndex(index) {
+  if (!index || typeof index !== "object") return "";
+  const words = [];
+  for (const [word, positions] of Object.entries(index)) {
+    if (!Array.isArray(positions)) continue;
+    for (const position of positions) {
+      if (Number.isSafeInteger(position) && position >= 0 && position < 10000) words.push([position, word]);
+    }
+  }
+  words.sort((a, b) => a[0] - b[0]);
+  return words.map(entry => entry[1]).join(" ").slice(0, 900);
 }

@@ -3,41 +3,123 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Nidara: explore publicações científicas e descubra conhecimento aberto.">
+  <meta name="description" content="Pesquise e conecte publicações científicas em fontes abertas.">
   <meta name="theme-color" content="#ffffff">
-  <title>Nidara — Explore o conhecimento</title>
+  <link rel="canonical" href="https://diegopn.github.io/nidara/">
+  <title>Nidara — Descoberta científica aberta</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>try{const t=localStorage.getItem("preferred-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch{}</script>
+  <script>try{const theme=localStorage.getItem("preferred-theme");if(theme==="dark"||theme==="light")document.documentElement.dataset.theme=theme}catch{}</script>
   <link rel="stylesheet" href="./css/style.css">
   <script type="module" src="./js/app.js"></script>
 </head>
 <body>
-  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+  <a class="skip" href="#conteudo" data-i18n="skipToContent">Pular para o conteúdo</a>
   <header class="topbar">
-    <a class="brand" href="./" aria-label="Nidara, início"><span class="brand-mark" aria-hidden="true">N</span><span class="brand-copy"><strong>Nidara</strong><small>Descoberta científica aberta</small></span></a>
-    <div class="header-actions"><a class="header-link" href="https://github.com/diegopn/nidara" rel="noopener noreferrer">GITHUB ↗</a><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Alternar tema claro ou escuro" aria-pressed="false">◐</button></div>
+    <a class="brand" href="./" aria-label="Nidara, início" data-i18n-aria-label="homeLabel">
+      <span class="brand-mark" aria-hidden="true">N</span>
+      <span class="brand-copy"><strong>Nidara</strong><small data-i18n="tagline">Descoberta científica aberta</small></span>
+    </a>
+    <div class="header-actions">
+      <label class="language-choice">
+        <span class="visually-hidden" data-i18n="languageSelector">Idioma</span>
+        <select id="language-switcher" aria-label="Idioma" data-i18n-aria-label="languageSelector">
+          <option value="pt-BR">PT-BR</option>
+          <option value="en">EN</option>
+          <option value="es">ES</option>
+        </select>
+      </label>
+      <button class="saved-toggle" id="saved-toggle" type="button" aria-label="Itens salvos" data-i18n-aria-label="savedItems" aria-pressed="false"><span class="saved-label" data-i18n="savedItems">Itens salvos</span> <span id="saved-count" aria-live="polite">0</span></button>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Ativar tema escuro" data-i18n-aria-label="themeDark" aria-pressed="false">◐</button>
+    </div>
   </header>
+
   <main id="conteudo">
-    <section class="hero" aria-labelledby="titulo"><div class="content-width hero-inner">
-      <p class="eyebrow">Pesquisa · exploração · descoberta</p>
-      <h1 id="titulo">Conhecimento<br>sem fronteiras.</h1>
-      <p class="lead">Encontre publicações científicas em fontes abertas. Explore ideias, conecte pesquisas e descubra novos caminhos.</p>
-      <form id="search-form" role="search">
-        <label for="query">O que você quer descobrir?</label>
-        <div class="searchline"><input id="query" name="q" type="search" minlength="2" maxlength="250" placeholder="Pesquise um assunto, método ou conceito" autocomplete="off" required><button type="submit">Pesquisar <span aria-hidden="true">→</span></button></div>
-        <div class="filters"><label for="year">Publicado desde <input id="year" name="year" type="number" min="1900" max="2100" placeholder="Qualquer ano"></label><label for="sort">Ordenar por <select id="sort" name="sort"><option value="relevance">Relevância</option><option value="newest">Mais recentes</option><option value="cited">Mais citados</option></select></label></div>
-      </form>
-    </div></section>
-    <section class="results" aria-labelledby="results-title"><div class="content-width">
-      <div class="results-head"><div><p class="eyebrow">01 · Explorar</p><h2 id="results-title">Comece com uma pesquisa</h2></div><span id="count"></span></div>
-      <p id="status" role="status" aria-live="polite">As buscas consultam a API pública do OpenAlex. Outras fontes serão adicionadas progressivamente.</p>
-      <div id="results-list" class="results-list"></div>
-      <div class="more"><button id="more" type="button" hidden>Carregar mais resultados →</button></div>
-    </div></section>
+    <section class="hero" aria-labelledby="titulo">
+      <div class="content-width hero-inner">
+        <p class="eyebrow" data-i18n="heroEyebrow">Pesquisa · exploração · descoberta</p>
+        <h1 id="titulo"><span data-i18n="heroTitleFirst">Ideias que</span><br><span data-i18n="heroTitleSecond">encontram caminhos.</span></h1>
+        <p class="lead" data-i18n="lead">Descubra pesquisas em fontes acadêmicas abertas. Explore publicações, conecte ideias e encontre novos caminhos para investigar.</p>
+
+        <form id="search-form" role="search" novalidate>
+          <label class="query-label" for="query" data-i18n="searchPrompt">O que você quer descobrir?</label>
+          <div class="searchline">
+            <input id="query" name="q" type="search" minlength="2" maxlength="250" placeholder="Assunto, método ou conceito" data-i18n-placeholder="searchPlaceholder" autocomplete="off" required>
+            <button id="search-button" type="submit"><span data-i18n="searchButton">Pesquisar</span> <span aria-hidden="true">→</span></button>
+          </div>
+
+          <div class="filters" aria-label="Filtros da pesquisa" data-i18n-aria-label="searchFilters">
+            <label for="year-from"><span data-i18n="yearFrom">De</span> <input id="year-from" name="from" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
+            <label for="year-to"><span data-i18n="yearTo">Até</span> <input id="year-to" name="to" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
+            <label for="resource-type"><span data-i18n="filterType">Tipo</span>
+              <select id="resource-type" name="type">
+                <option value="all" data-i18n="typeAll">Todos os tipos</option>
+                <option value="article" data-i18n="typeArticleFilter">Artigos</option>
+                <option value="preprint" data-i18n="typePreprintFilter">Preprints</option>
+                <option value="dataset" data-i18n="typeDatasetFilter">Conjuntos de dados</option>
+                <option value="book" data-i18n="typeBookFilter">Livros e capítulos</option>
+              </select>
+            </label>
+            <label for="sort"><span data-i18n="sortBy">Ordenar por</span>
+              <select id="sort" name="sort">
+                <option value="relevance" data-i18n="sortRelevance">Relevância</option>
+                <option value="newest" data-i18n="sortNewest">Mais recentes</option>
+                <option value="cited" data-i18n="sortCited">Mais citados</option>
+              </select>
+            </label>
+          </div>
+
+          <fieldset class="source-filters">
+            <legend data-i18n="sourceGroup">Fontes</legend>
+            <label><input type="checkbox" name="sources" value="openalex" checked> OpenAlex</label>
+            <label><input type="checkbox" name="sources" value="crossref" checked> Crossref</label>
+          </fieldset>
+          <p class="source-note" data-i18n="sourcesNote">As fontes são consultadas em paralelo. O acesso público ao OpenAlex pode ter limite; o Crossref segue disponível quando isso acontecer.</p>
+        </form>
+      </div>
+    </section>
+
+    <section class="results" id="explorar" aria-labelledby="results-title">
+      <div class="content-width">
+        <div class="results-head">
+          <div>
+            <p class="eyebrow" data-i18n="resultsEyebrow">01 · Explorar</p>
+            <h2 id="results-title" data-i18n="initialTitle">Comece com uma pesquisa</h2>
+          </div>
+          <p id="count" class="count" aria-live="polite"></p>
+        </div>
+        <div class="results-tools" aria-label="Ações dos resultados" data-i18n-aria-label="resultActions">
+          <button id="share-button" type="button" disabled data-i18n="shareSearch">Compartilhar pesquisa</button>
+          <label class="export-choice" for="export-format"><span data-i18n="export">Exportar</span>
+            <select id="export-format" aria-label="Formato da exportação" data-i18n-aria-label="exportFormat">
+              <option value="bibtex">BibTeX</option>
+              <option value="ris">RIS</option>
+              <option value="csv">CSV</option>
+            </select>
+          </label>
+          <button id="export-button" type="button" disabled data-i18n="download">Baixar</button>
+        </div>
+        <div id="share-fallback" hidden>
+          <label for="share-url" data-i18n="copySearchLink">Copie o link da pesquisa</label>
+          <input id="share-url" type="url" readonly>
+        </div>
+        <p id="status" role="status" aria-live="polite" data-i18n="initialStatus">Pesquise um tema para consultar OpenAlex e Crossref. Os dados e links mostram a fonte de cada registro.</p>
+        <div id="results-list" class="results-list" aria-busy="false"></div>
+        <div class="more"><button id="more" type="button" hidden><span data-i18n="loadMore">Carregar mais resultados</span> <span aria-hidden="true">→</span></button></div>
+      </div>
+    </section>
   </main>
-  <footer><div class="content-width footer-inner"><span><strong>Nidara</strong> · Projeto aberto em desenvolvimento</span><a href="https://diegopn.github.io/" rel="noopener noreferrer">Diego Pereira ↗</a></div></footer>
-  <script>const themeButton=document.querySelector("#theme-toggle");const updateThemeButton=()=>{const dark=document.documentElement.dataset.theme==="dark"||(!document.documentElement.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches);themeButton.setAttribute("aria-pressed",String(dark));themeButton.setAttribute("aria-label",dark?"Ativar tema claro":"Ativar tema escuro")};themeButton.addEventListener("click",()=>{const dark=themeButton.getAttribute("aria-pressed")==="true";document.documentElement.dataset.theme=dark?"light":"dark";try{localStorage.setItem("preferred-theme",dark?"light":"dark")}catch{}updateThemeButton()});updateThemeButton();matchMedia("(prefers-color-scheme: dark)").addEventListener("change",updateThemeButton)</script>
+
+  <footer>
+    <div class="content-width footer-inner">
+      <span><strong>Nidara</strong> · <span data-i18n="initiative">Uma iniciativa de</span> Diego Pereira do Nascimento</span>
+      <div class="footer-links">
+        <a href="https://diegopn.github.io/" target="_blank" rel="noopener noreferrer" data-i18n="portfolio">Portfólio ↗</a>
+        <a href="https://github.com/diegopn/nidara" target="_blank" rel="noopener noreferrer" data-i18n="repository">Repositório ↗</a>
+        <a href="./LICENSE" data-i18n="license">Licença</a>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

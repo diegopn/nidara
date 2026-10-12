@@ -1,30 +1,45 @@
-name: Deploy Nidara to GitHub Pages
+name: Verificar e publicar site
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
 concurrency:
   group: pages
   cancel-in-progress: true
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+      - name: Verificar site
+        run: python3 -m unittest discover -s tests -v
   deploy:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Baixar repositório
         uses: actions/checkout@v4
-      - name: Configure Pages
+      - name: Gerar rotas e arquivos estáticos
+        run: python3 scripts/build_site.py --output dist
+      - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Upload static site
+      - name: Enviar arquivos do site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
-      - name: Deploy
+          path: dist
+      - name: Publicar
         id: deployment
         uses: actions/deploy-pages@v4
