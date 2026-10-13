@@ -8,7 +8,7 @@ const TYPES = {
   dataset: ["dataset"],
   book: ["book", "monograph", "book-chapter"]
 };
-const FIELDS = "DOI,URL,title,author,issued,published,container-title,is-referenced-by-count,abstract,type,license";
+const FIELDS = "DOI,URL,title,author,issued,published,container-title,publisher,subject,is-referenced-by-count,abstract,type,license";
 
 export async function searchWorks({ query, yearFrom, yearTo, fromDate, toDate, type = "all", openAccessOnly = false, sort = "relevance", page = 1, signal }) {
   const typeValues = TYPES[type] || [];
@@ -77,6 +77,34 @@ export function normalizeWork(work) {
     };
   }).filter(Boolean);
   const type = typeof work.type === "string" ? work.type : "";
+  const abstract = stripMarkup(work.abstract || "").slice(0, 8000);
+  const authorProfilesForDataset = (work.author || []).slice(0, 12).map(author => ({
+    name: [author.given, author.family].filter(Boolean).join(" ").trim(),
+    orcid: safeExternalUrl(author.ORCID),
+    affiliations: (Array.isArray(author.affiliation) ? author.affiliation : []).map(affiliation => typeof affiliation === "string" ? affiliation : affiliation?.name).filter(Boolean)
+  })).filter(creator => creator.name);
+  const datasetMetadata = type.toLowerCase() === "dataset" ? {
+    source: "Crossref",
+    landingPage: safeExternalUrl(work.URL),
+    publisher: typeof work.publisher === "string" ? work.publisher.trim() : "",
+    resourceType: "Dataset",
+    description: abstract,
+    licenses: (work.license || []).map(entry => {
+      const url = safeExternalUrl(entry.URL || "");
+      return { label: crossrefLicenseLabel(url), identifier: "", url };
+    }).filter(license => license.label || license.url),
+    version: "",
+    subjects: [...new Set((work.subject || []).filter(value => typeof value === "string" && value.trim()).map(value => value.trim()))],
+    formats: [],
+    sizes: [],
+    locations: [],
+    periods: [],
+    funding: [],
+    creators: authorProfilesForDataset,
+    related: [],
+    accessUrls: [],
+    updated: ""
+  } : undefined;
 
   return {
     id: doi || safeExternalUrl(work.URL),
@@ -90,11 +118,26 @@ export function normalizeWork(work) {
     citations: Number.isFinite(work["is-referenced-by-count"]) ? work["is-referenced-by-count"] : null,
     doi,
     url: url || "https://www.crossref.org/",
-    openAccess: hasOpenLicense(work.license),
-    abstract: stripMarkup(work.abstract || "").slice(0, 900),
+    openAccess: type.toLowerCase() === "dataset" ? hasOpenDatasetLicense(work.license) : hasOpenLicense(work.license),
+    abstract: abstract.slice(0, 900),
+    datasetMetadata,
     sources: [{ id: "crossref", label: "Crossref" }],
     provenance: { title: "Crossref", authors: "Crossref", year: "Crossref", journal: "Crossref", citations: "Crossref" }
   };
+}
+
+function hasOpenDatasetLicense(licenses) {
+  return (licenses || []).some(entry => {
+    const url = safeExternalUrl(entry.URL || "");
+    return /creativecommons\.org\/(?:publicdomain\/zero|licenses\/by(?:-sa)?\/\d)/i.test(url);
+  }) ? true : null;
+}
+
+function crossrefLicenseLabel(url) {
+  const match = url.match(/creativecommons\.org\/licenses\/([^/]+)\/(\d+(?:\.\d+)?)/i);
+  if (match) return `CC ${match[1].replace(/-/g, " ").toUpperCase()} ${match[2]}`;
+  if (/creativecommons\.org\/publicdomain\/zero\/(\d+(?:\.\d+)?)/i.test(url)) return "CC0";
+  return url;
 }
 
 function hasOpenLicense(licenses) {
