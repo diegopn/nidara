@@ -206,6 +206,7 @@ h2 { margin: 4px 0 0; font-size: clamp(2rem, 3.4vw, 2.8rem); line-height: 1.05; 
 footer { border-top: 1px solid var(--line); }
 .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 22px; color: var(--muted); font-size: 10px; }
 .footer-inner strong { color: var(--ink); }
+.footer-author { color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .footer-links a { text-decoration: underline; text-underline-offset: 3px; }
 
 @media (max-width: 760px) {
