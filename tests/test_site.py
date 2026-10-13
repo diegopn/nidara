@@ -147,6 +147,7 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertGreater(card.group(1).index("article.append(actions)"), card.group(1).index("actions.append(save)"))
 
         messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
+        self.assertNotIn("fieldAbstract", messages["pt-BR"])
         self.assertEqual({locale: values["addToCart"] for locale, values in messages.items()}, {
             "pt-BR": "Adicionar referência à lista",
             "en": "Add reference to list",
