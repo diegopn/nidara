@@ -27,9 +27,6 @@ const referencesEmpty = document.querySelector("#references-empty");
 const referencesList = document.querySelector("#references-list");
 const exportCount = document.querySelector("#export-count");
 const resultTabs = document.querySelector("#result-tabs");
-const shareButton = document.querySelector("#share-button");
-const shareFallback = document.querySelector("#share-fallback");
-const shareUrl = document.querySelector("#share-url");
 const exportButton = document.querySelector("#export-button");
 const exportFormat = document.querySelector("#export-format");
 const languageSwitcher = document.querySelector("#language-switcher");
@@ -303,7 +300,6 @@ function renderCurrentItems() {
         : works.length
           ? t("loadedCount", { loaded: formatNumber(works.length), total: formatNumber(totalMatches()) })
           : "";
-  shareButton.disabled = !activeFilters;
   exportButton.disabled = favorites.size === 0;
   more.hidden = !Object.values(providerProgress).some(progress => progress.hasMore);
 }
@@ -442,7 +438,6 @@ function updateShareUrl(filters) {
   if (selectedAuthor) url.searchParams.set("author", selectedAuthor);
   url.searchParams.delete("lang");
   history.replaceState(null, "", url);
-  shareFallback.hidden = true;
 }
 
 function filtersFromUrl() {
@@ -559,23 +554,6 @@ async function runSearch(append = false) {
   }
 }
 
-async function shareSearch() {
-  if (!activeFilters) return;
-  const url = new URL(location.href);
-  try {
-    if (!navigator.clipboard?.writeText) throw new Error("Área de transferência indisponível");
-    await navigator.clipboard.writeText(url.href);
-    shareFallback.hidden = true;
-    setStatus(t("shareCopied"));
-  } catch {
-    shareUrl.value = url.href;
-    shareFallback.hidden = false;
-    shareUrl.focus();
-    shareUrl.select();
-    setStatus(t("shareCopyFailed"));
-  }
-}
-
 form.addEventListener("submit", event => {
   event.preventDefault();
   const filters = readFiltersFromForm();
@@ -615,7 +593,6 @@ referencesDialog.addEventListener("close", () => {
   savedToggle.setAttribute("aria-expanded", "false");
   savedToggle.focus();
 });
-shareButton.addEventListener("click", shareSearch);
 exportButton.addEventListener("click", () => {
   try {
     exportWorks([...favorites.values()], exportFormat.value, t("favoritesTitle"));

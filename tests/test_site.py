@@ -92,6 +92,12 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('data-view="datasets"', self.html)
         self.assertIn('data-i18n="authorScope"', self.html)
 
+    def test_search_sharing_controls_and_code_are_removed(self):
+        for obsolete in ('id="share-button"', 'id="share-fallback"', 'id="share-url"'):
+            self.assertNotIn(obsolete, self.html)
+        self.assertNotIn("shareSearch", self.app)
+        self.assertNotIn("shareButton.addEventListener", self.app)
+
     def test_reference_dialog_contains_list_and_export_controls(self):
         listing_toolbar = re.search(r'<div class="listing-toolbar" id="listing-toolbar">([\s\S]*?)</div>\s*<p id="view-note"', self.html)
         self.assertIsNotNone(listing_toolbar)
