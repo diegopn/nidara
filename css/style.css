@@ -190,7 +190,7 @@ h2 { margin: 4px 0 0; font-size: clamp(2rem, 3.4vw, 2.8rem); line-height: 1.05; 
 .view-note, .authors-scope { margin: 10px 0 4px; color: var(--muted); font-size: 11px; }
 #status { min-height: 22px; margin: 7px 0 8px; color: var(--muted); font-size: 11px; }
 .results-list { display: grid; gap: 10px; }
-.result { min-width: 0; padding: 17px 18px; border: 1px solid var(--line); background: var(--research-surface); }
+.result { min-width: 0; padding: 17px 18px; border: 1px solid var(--line); background: var(--hero-surface); }
 .result-heading-row { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
 .result h3 { max-width: 950px; margin: 7px 0 5px; font-size: 16px; font-weight: 700; line-height: 1.38; overflow-wrap: anywhere; }
 .result h3 a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
@@ -203,7 +203,7 @@ h2 { margin: 4px 0 0; font-size: clamp(2rem, 3.4vw, 2.8rem); line-height: 1.05; 
 .doi-line { margin: 8px 0 0; font-size: 10px; }
 .doi-line a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
 .result-actions { display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
-.save-button { flex: 0 0 auto; min-height: 40px; padding: 7px 12px; border: 1px solid var(--accent); border-radius: 0; color: var(--accent); background: var(--page-surface); font-size: 11px; font-weight: 700; }
+.save-button { flex: 0 0 auto; min-height: 40px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 0; color: var(--accent); background: var(--page-surface); font-size: 11px; font-weight: 700; }
 .save-button:hover, .save-button[aria-pressed="true"] { border-color: var(--accent); background: var(--research-surface); }
 .author-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 245px), 1fr)); gap: 10px; }
 .author-card { display: flex; min-width: 0; flex-direction: column; align-items: start; padding: 15px 16px; border: 1px solid var(--line); background: var(--page-surface); }

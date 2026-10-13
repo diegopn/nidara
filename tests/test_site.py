@@ -237,7 +237,17 @@ class SiteIntegrityTests(unittest.TestCase):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
         result = re.search(r"\.result\s*\{([^}]*)\}", css)
         self.assertIsNotNone(result)
-        self.assertRegex(result.group(1), r"background:\s*var\(--research-surface\)")
+        self.assertRegex(result.group(1), r"background:\s*var\(--hero-surface\)")
+
+    def test_reference_button_is_secondary_to_the_search_button(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        reference_button = re.search(r"\.save-button\s*\{([^}]*)\}", css)
+        search_button = re.search(r"#search-button,\s*\.more button,\s*\.authors-more\s*\{([^}]*)\}", css)
+        self.assertIsNotNone(reference_button)
+        self.assertIsNotNone(search_button)
+        self.assertRegex(reference_button.group(1), r"border:\s*1px solid var\(--line\)")
+        self.assertRegex(reference_button.group(1), r"background:\s*var\(--page-surface\)")
+        self.assertRegex(search_button.group(1), r"background:\s*var\(--button-bg\)")
 
     def test_h1_and_h2_use_semibold_weight(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
