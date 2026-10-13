@@ -5,10 +5,12 @@ import { deduplicateWorks, normalizeDoi, safeExternalUrl, workKey } from "./core
 
 const FAVORITES_KEY = "nidara:favorites:v1";
 const MAX_FAVORITES = 250;
+const DEFAULT_SOURCES = ["openalex", "crossref"];
 const form = document.querySelector("#search-form");
 const queryInput = document.querySelector("#query");
 const yearFromInput = document.querySelector("#year-from");
 const yearToInput = document.querySelector("#year-to");
+const sortSelect = document.querySelector("#sort");
 const list = document.querySelector("#results-list");
 const status = document.querySelector("#status");
 const title = document.querySelector("#results-title");
@@ -217,6 +219,7 @@ function renderEmpty(titleKey, textKey) {
 
 function renderCurrentItems() {
   const items = savedView ? [...favorites.values()] : loadedItems;
+  sortSelect.disabled = savedView;
   const publications = publicationItems(items);
   const authors = summarizeAuthors(publications);
   const works = visibleWorks(items);
@@ -356,23 +359,20 @@ function readFiltersFromForm() {
   const query = queryInput.value.trim();
   const yearFrom = yearFromInput.value.trim();
   const yearTo = yearToInput.value.trim();
-  const sourceIds = [...form.querySelectorAll('input[name="sources"]:checked')].map(input => input.value);
-
   queryInput.setCustomValidity(query.length < 2 ? t("queryMin") : "");
   yearFromInput.setCustomValidity("");
   yearToInput.setCustomValidity("");
   if (yearFrom && yearTo && Number(yearFrom) > Number(yearTo)) {
     yearToInput.setCustomValidity(t("yearOrder"));
   }
-  if (!sourceIds.length) queryInput.setCustomValidity(t("sourceRequired"));
   if (!form.reportValidity()) return null;
 
   return {
     query,
     yearFrom,
     yearTo,
-    sort: document.querySelector("#sort").value,
-    sourceIds
+    sort: sortSelect.value,
+    sourceIds: [...DEFAULT_SOURCES]
   };
 }
 
@@ -385,7 +385,6 @@ function updateShareUrl(filters) {
   if (filters.yearFrom) url.searchParams.set("from", filters.yearFrom);
   if (filters.yearTo) url.searchParams.set("to", filters.yearTo);
   if (filters.sort !== "relevance") url.searchParams.set("sort", filters.sort);
-  url.searchParams.set("sources", filters.sourceIds.join(","));
   if (activeView !== "publications") url.searchParams.set("view", activeView);
   if (selectedAuthor) url.searchParams.set("author", selectedAuthor);
   url.searchParams.delete("lang");
@@ -406,13 +405,7 @@ function filtersFromUrl() {
     : url.searchParams.get("type") === "dataset" ? "datasets" : "publications";
   selectedAuthor = activeView === "publications" ? (url.searchParams.get("author") || "").slice(0, 250) : "";
   const sort = url.searchParams.get("sort");
-  if (["newest", "cited"].includes(sort)) document.querySelector("#sort").value = sort;
-  const sourceParam = url.searchParams.get("sources");
-  if (sourceParam) {
-    const selected = sourceParam.split(",").filter(value => ["openalex", "crossref"].includes(value));
-    for (const input of form.querySelectorAll('input[name="sources"]')) input.checked = selected.includes(input.value);
-    if (!selected.length) for (const input of form.querySelectorAll('input[name="sources"]')) input.checked = true;
-  }
+  if (["newest", "cited"].includes(sort)) sortSelect.value = sort;
   form.requestSubmit();
 }
 
@@ -575,16 +568,9 @@ for (const tab of viewTabs) {
     viewTabs[nextIndex].click();
   });
 }
-for (const input of form.querySelectorAll('input[name="sources"]')) {
-  input.addEventListener("change", () => {
-    if (!form.querySelector('input[name="sources"]:checked')) {
-      input.checked = true;
-      setStatus(t("sourceRequired"));
-      return;
-    }
-    if (activeFilters && !savedView) form.requestSubmit();
-  });
-}
+sortSelect.addEventListener("change", () => {
+  if (activeFilters && !savedView) form.requestSubmit();
+});
 savedToggle.addEventListener("click", toggleSavedView);
 shareButton.addEventListener("click", shareSearch);
 exportButton.addEventListener("click", () => {

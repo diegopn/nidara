@@ -1,4 +1,4 @@
-import { normalizeDoi, safeExternalUrl } from "../core/work-utils.js";
+import { normalizeDoi, normalizePublicationYear, safeExternalUrl } from "../core/work-utils.js";
 
 const ENDPOINT = "https://api.openalex.org/works";
 const PAGE_SIZE = 15;
@@ -51,7 +51,7 @@ function normalizeWork(work) {
     providerId: "openalex",
     title: typeof work.display_name === "string" && work.display_name.trim() ? work.display_name.trim() : "",
     authors,
-    year: Number.isInteger(work.publication_year) ? work.publication_year : null,
+    year: normalizePublicationYear(work.publication_year),
     journal,
     type: typeof work.type === "string" ? work.type : "",
     citations: Number.isFinite(work.cited_by_count) ? work.cited_by_count : null,

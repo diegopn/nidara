@@ -68,9 +68,7 @@ class SiteIntegrityTests(unittest.TestCase):
             {locale: href for href, locale in re.findall(r'<a href="([^"]+)" data-locale="([^"]+)"', language_select.group(1))},
             {"pt-BR": "./", "en": "./en/", "es": "./es/"},
         )
-        self.assertIn('Português', language_select.group(1))
-        self.assertIn('English', language_select.group(1))
-        self.assertIn('Español', language_select.group(1))
+        self.assertEqual(re.findall(r'<a\b[^>]*data-locale="[^"]+"[^>]*>(.*?)</a>', language_select.group(1)), ["PT", "EN", "ES"])
         self.assertRegex(self.html, r'<html\s+lang="pt-BR">')
 
         messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
@@ -94,13 +92,32 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('data-view="datasets"', self.html)
         self.assertIn('data-i18n="authorScope"', self.html)
 
-    def test_source_changes_refresh_an_existing_search(self):
-        self.assertRegex(
-            self.app,
-            r'input\[name="sources"\][\s\S]*?addEventListener\("change"',
-            "Changing a source must have an explicit live behavior",
-        )
-        self.assertIn("form.requestSubmit()", self.app)
+    def test_search_uses_default_sources_and_sorting_is_in_results(self):
+        search_form = re.search(r'<form\b[^>]*id="search-form"[^>]*>(.*?)</form>', self.html, re.DOTALL)
+        self.assertIsNotNone(search_form)
+        self.assertNotIn('name="sources"', search_form.group(1))
+        self.assertNotIn('id="sort"', search_form.group(1))
+        self.assertLess(self.html.index('id="result-tabs"'), self.html.index('id="sort"'))
+        self.assertLess(self.html.index('id="sort"'), self.html.index('id="view-note"'))
+        self.assertIn('const DEFAULT_SOURCES = ["openalex", "crossref"]', self.app)
+        self.assertRegex(self.app, r'sortSelect\.addEventListener\("change"[\s\S]{0,220}form\.requestSubmit\(\)')
+
+    def test_provider_years_stay_within_the_supported_publication_range(self):
+        utilities = (ROOT / "js/core/work-utils.js").read_text(encoding="utf-8")
+        self.assertRegex(utilities, r'export function normalizePublicationYear\([\s\S]*?year >= 1900 && year <= 2100')
+        for provider in ("crossref", "openalex"):
+            source = (ROOT / f"js/providers/{provider}.js").read_text(encoding="utf-8")
+            self.assertIn("normalizePublicationYear", source, f"{provider} years must use shared validation")
+
+    def test_brand_icon_is_used_as_site_icon_and_header_mark(self):
+        self.assertIn('rel="icon" type="image/svg+xml" href="./assets/nidara-mark.svg"', self.html)
+        self.assertIn('class="brand-mark" src="./assets/nidara-mark.svg"', self.html)
+        icon = self.site / "assets/nidara-mark.svg"
+        self.assertTrue(icon.is_file())
+        self.assertIn('viewBox="0 0 64 64"', icon.read_text(encoding="utf-8"))
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        self.assertIn("--page-surface: #fbfaf7", css)
+        self.assertIn("--accent: #426b62", css)
 
     def test_author_and_saved_counts_match_the_visible_scope(self):
         self.assertRegex(self.app, r'selectedAuthor\s*\?\s*t\("authorWorksCount"')
@@ -115,6 +132,8 @@ class SiteIntegrityTests(unittest.TestCase):
             self.assertIn(f'href="https://diegopn.github.io/nidara/{locale}/"', html)
             self.assertIn('href="../css/style.css"', html)
             self.assertIn('src="../js/app.js"', html)
+            self.assertIn('href="../assets/nidara-mark.svg"', html)
+            self.assertIn('src="../assets/nidara-mark.svg"', html)
             self.assertIn('href="../"', html)
             self.assertIn('href="../LICENSE"', html)
             language_nav = re.search(r'<nav\b[^>]*id="language-switcher"[^>]*>(.*?)</nav>', html, re.DOTALL)
@@ -122,7 +141,7 @@ class SiteIntegrityTests(unittest.TestCase):
             language_links = {target_locale: href for href, target_locale in re.findall(r'<a href="([^"]+)" data-locale="([^"]+)"', language_nav.group(1))}
             expected_links = {"pt-BR": "../", "en": "./" if locale == "en" else "../en/", "es": "./" if locale == "es" else "../es/"}
             self.assertEqual(language_links, expected_links, f"Broken locale switch from /{locale}/")
-            for asset in ("../css/style.css", "../js/app.js"):
+            for asset in ("../css/style.css", "../js/app.js", "../assets/nidara-mark.svg"):
                 self.assertTrue((route.parent / asset).resolve().is_file(), f"Broken {locale} asset: {asset}")
 
     def test_distributed_license_requires_the_project_notice(self):

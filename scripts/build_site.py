@@ -29,6 +29,7 @@ def build_site(output: Path) -> None:
     (output / "css").mkdir(parents=True)
     shutil.copytree(ROOT / "css", output / "css", dirs_exist_ok=True)
     shutil.copytree(ROOT / "js", output / "js", dirs_exist_ok=True)
+    shutil.copytree(ROOT / "assets", output / "assets", dirs_exist_ok=True)
     shutil.copy2(ROOT / "LICENSE", output / "LICENSE")
 
     for locale in ("pt-BR", "en", "es"):
@@ -51,6 +52,8 @@ def build_site(output: Path) -> None:
         if locale != "pt-BR":
             page = page.replace('<a class="brand" href="./"', '<a class="brand" href="../"', 1)
             page = page.replace('href="./css/style.css"', 'href="../css/style.css"', 1)
+            page = page.replace('href="./assets/nidara-mark.svg"', 'href="../assets/nidara-mark.svg"', 1)
+            page = page.replace('src="./assets/nidara-mark.svg"', 'src="../assets/nidara-mark.svg"', 1)
             page = page.replace('src="./js/app.js"', 'src="../js/app.js"', 1)
             page = page.replace('href="./LICENSE"', 'href="../LICENSE"', 1)
             route = output / locale.lower()

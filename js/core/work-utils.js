@@ -7,6 +7,11 @@ export function normalizeDoi(value) {
   return /^10\.\d{4,9}\/\S+$/i.test(doi) ? doi.toLowerCase() : "";
 }
 
+export function normalizePublicationYear(value) {
+  const year = Number(value);
+  return Number.isInteger(year) && year >= 1900 && year <= 2100 ? year : null;
+}
+
 export function safeExternalUrl(value) {
   if (typeof value !== "string") return "";
   try {

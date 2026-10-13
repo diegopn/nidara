@@ -4,12 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Pesquise e conecte publicações científicas em fontes abertas.">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#fbfaf7">
   <link rel="canonical" href="https://diegopn.github.io/nidara/">
   <title>Nidara — Descoberta científica aberta</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="./assets/nidara-mark.svg">
   <script>try{const theme=localStorage.getItem("preferred-theme");if(theme==="dark"||theme==="light")document.documentElement.dataset.theme=theme}catch{}</script>
   <link rel="stylesheet" href="./css/style.css">
   <script type="module" src="./js/app.js"></script>
@@ -18,14 +19,14 @@
   <a class="skip" href="#conteudo" data-i18n="skipToContent">Pular para o conteúdo</a>
   <header class="topbar">
     <a class="brand" href="./" aria-label="Nidara, início" data-i18n-aria-label="homeLabel">
-      <span class="brand-mark" aria-hidden="true">N</span>
+      <img class="brand-mark" src="./assets/nidara-mark.svg" alt="" aria-hidden="true">
       <span class="brand-copy"><strong>Nidara</strong><small data-i18n="tagline">Descoberta científica aberta</small></span>
     </a>
     <div class="header-actions">
       <nav class="language-switcher" id="language-switcher" aria-label="Idioma" data-i18n-aria-label="languageSelector">
-        <a href="./" data-locale="pt-BR" lang="pt-BR" aria-current="page">Português</a>
-        <a href="./en/" data-locale="en" lang="en">English</a>
-        <a href="./es/" data-locale="es" lang="es">Español</a>
+        <a href="./" data-locale="pt-BR" lang="pt-BR" aria-label="Português" title="Português" aria-current="page">PT</a>
+        <a href="./en/" data-locale="en" lang="en" aria-label="English" title="English">EN</a>
+        <a href="./es/" data-locale="es" lang="es" aria-label="Español" title="Español">ES</a>
       </nav>
       <button class="saved-toggle" id="saved-toggle" type="button" aria-label="Itens salvos" data-i18n-aria-label="savedItems" aria-pressed="false"><span class="saved-label" data-i18n="savedItems">Itens salvos</span> <span id="saved-count" aria-live="polite">0</span></button>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Ativar tema escuro" data-i18n-aria-label="themeDark" aria-pressed="false">◐</button>
@@ -47,28 +48,14 @@
           <label class="query-label" for="query" data-i18n="searchPrompt">O que você quer descobrir?</label>
           <div class="searchline">
             <input id="query" name="q" type="search" minlength="2" maxlength="250" placeholder="Assunto, método ou conceito" data-i18n-placeholder="searchPlaceholder" autocomplete="off" required>
+            <button id="search-button" type="submit"><span data-i18n="searchButton">Pesquisar</span> <span aria-hidden="true">→</span></button>
           </div>
 
-          <div class="filters" aria-label="Filtros da pesquisa" data-i18n-aria-label="searchFilters">
-            <fieldset class="source-filters">
-              <legend data-i18n="sourceGroup">Consultar fontes</legend>
-              <label><input type="checkbox" name="sources" value="openalex" checked><span>OpenAlex</span></label>
-              <label><input type="checkbox" name="sources" value="crossref" checked><span>Crossref</span></label>
-            </fieldset>
-            <label class="filter-field" for="year-from"><span data-i18n="yearFrom">De</span> <input id="year-from" name="from" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
-            <label class="filter-field" for="year-to"><span data-i18n="yearTo">Até</span> <input id="year-to" name="to" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
-            <label class="filter-field" for="sort"><span data-i18n="sortBy">Ordenação</span>
-              <select id="sort" name="sort">
-                <option value="relevance" data-i18n="sortRelevance">Relevância</option>
-                <option value="newest" data-i18n="sortNewest">Mais recentes</option>
-                <option value="cited" data-i18n="sortCited">Mais citados</option>
-              </select>
-            </label>
-          </div>
-          <div class="search-submit-row">
-            <p class="source-note" data-i18n="sourcesNote">Selecione uma ou ambas as fontes; os resultados são atualizados ao mudar a seleção.</p>
-            <button id="search-button" type="submit"><span data-i18n="searchButton">Pesquisar publicações</span> <span aria-hidden="true">→</span></button>
-          </div>
+          <fieldset class="filters" aria-label="Filtros da pesquisa" data-i18n-aria-label="searchFilters">
+            <legend data-i18n="yearRange">Período de publicação</legend>
+            <label class="filter-field" for="year-from"><span data-i18n="yearFrom">De</span><input id="year-from" name="from" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
+            <label class="filter-field" for="year-to"><span data-i18n="yearTo">Até</span><input id="year-to" name="to" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
+          </fieldset>
         </form>
       </div>
     </section>
@@ -102,6 +89,15 @@
           <button class="result-tab" id="authors-tab" type="button" role="tab" aria-selected="false" aria-controls="results-list" data-view="authors" tabindex="-1"><span data-i18n="authorsTab">Autores</span><span class="tab-count" id="authors-count">0</span></button>
           <button class="result-tab" id="datasets-tab" type="button" role="tab" aria-selected="false" aria-controls="results-list" data-view="datasets" tabindex="-1"><span data-i18n="datasetsTab">Datasets</span><span class="tab-count" id="datasets-count">0</span></button>
         </nav>
+        <div class="listing-toolbar">
+          <label class="filter-field" for="sort"><span data-i18n="sortBy">Ordenar por</span>
+            <select id="sort" name="sort">
+              <option value="relevance" data-i18n="sortRelevance">Relevância</option>
+              <option value="newest" data-i18n="sortNewest">Mais recentes</option>
+              <option value="cited" data-i18n="sortCited">Mais citados</option>
+            </select>
+          </label>
+        </div>
         <p id="view-note" class="view-note" data-i18n="publicationViewNote">Artigos, preprints, livros e capítulos encontrados para sua busca.</p>
         <p class="authors-scope" id="authors-scope" data-i18n="authorScope" hidden></p>
         <p id="status" role="status" aria-live="polite" data-i18n="initialStatus">Busque um assunto. Cada publicação mostra seus autores, sua fonte e seus links.</p>

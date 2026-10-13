@@ -1,4 +1,4 @@
-import { normalizeDoi, safeExternalUrl } from "../core/work-utils.js";
+import { normalizeDoi, normalizePublicationYear, safeExternalUrl } from "../core/work-utils.js";
 
 const ENDPOINT = "https://api.crossref.org/v1/works";
 const PAGE_SIZE = 15;
@@ -46,7 +46,6 @@ function normalizeWork(work) {
   const doiUrl = doi ? "https://doi.org/" + doi : "";
   const url = doiUrl || safeExternalUrl(work.URL);
   const publicationDate = work.published?.["date-parts"]?.[0] || work.issued?.["date-parts"]?.[0];
-  const year = Number(publicationDate?.[0]);
   const authors = (work.author || []).slice(0, 8).map(author => [author.given, author.family].filter(Boolean).join(" ").trim()).filter(Boolean);
   const type = typeof work.type === "string" ? work.type : "";
 
@@ -55,7 +54,7 @@ function normalizeWork(work) {
     providerId: "crossref",
     title: Array.isArray(work.title) && work.title[0] ? stripMarkup(work.title[0]) : "",
     authors,
-    year: Number.isInteger(year) && year > 0 ? year : null,
+    year: normalizePublicationYear(publicationDate?.[0]),
     journal: Array.isArray(work["container-title"]) ? work["container-title"][0] || "" : "",
     type,
     citations: Number.isFinite(work["is-referenced-by-count"]) ? work["is-referenced-by-count"] : null,
