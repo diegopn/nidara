@@ -57,6 +57,30 @@ export function normalizeWork(work) {
     };
   }).filter(Boolean);
   const journal = work.primary_location?.source?.display_name || "";
+  const abstract = abstractFromIndex(work.abstract_inverted_index);
+  const datasetMetadata = String(work.type || "").toLowerCase() === "dataset" ? {
+    source: "OpenAlex",
+    landingPage: safeExternalUrl(work.primary_location?.landing_page_url),
+    publisher: journal,
+    resourceType: "Dataset",
+    description: abstract,
+    licenses: [],
+    version: "",
+    subjects: [],
+    formats: [],
+    sizes: [],
+    locations: [],
+    periods: [],
+    funding: [],
+    creators: (work.authorships || []).slice(0, 12).map(entry => ({
+      name: entry.author?.display_name || "",
+      orcid: safeExternalUrl(entry.author?.orcid || entry.raw_orcid),
+      affiliations: (entry.institutions || []).map(institution => institution.display_name).filter(Boolean)
+    })).filter(creator => creator.name),
+    related: [],
+    accessUrls: [safeExternalUrl(work.primary_location?.landing_page_url)].filter(Boolean),
+    updated: ""
+  } : undefined;
 
   return {
     id: openAlexUrl || doi,
@@ -71,7 +95,8 @@ export function normalizeWork(work) {
     doi,
     url: url || openAlexUrl || "https://openalex.org/",
     openAccess: typeof work.open_access?.is_oa === "boolean" ? work.open_access.is_oa : null,
-    abstract: abstractFromIndex(work.abstract_inverted_index),
+    abstract,
+    datasetMetadata,
     sources: [{ id: "openalex", label: "OpenAlex" }],
     provenance: { title: "OpenAlex", authors: "OpenAlex", year: "OpenAlex", journal: "OpenAlex", citations: "OpenAlex" }
   };
