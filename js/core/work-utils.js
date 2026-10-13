@@ -58,18 +58,72 @@ function isEmpty(value) {
 export function mergeWorks(existing, incoming) {
   const title = selectWorkTitle([existing.title, incoming.title]);
   const merged = { ...existing, title };
-  for (const field of ["authors", "year", "journal", "type", "abstract", "doi", "url", "openAccess", "citations"]) {
+  for (const field of ["authors", "year", "journal", "type", "abstract", "doi", "url", "openAccess", "citations", "datasetMetadata"]) {
     if (isEmpty(merged[field]) && !isEmpty(incoming[field])) merged[field] = incoming[field];
   }
+  merged.datasetMetadata = mergeDatasetMetadata(existing.datasetMetadata, incoming.datasetMetadata);
   merged.authors = [...new Set([...(existing.authors || []), ...(incoming.authors || [])].filter(name => typeof name === "string" && name.trim()))];
   merged.authorProfiles = mergeAuthorProfiles(existing.authorProfiles, incoming.authorProfiles);
   if (incoming.openAccess === true) merged.openAccess = true;
   if (Number.isFinite(incoming.citations)) merged.citations = Math.max(merged.citations || 0, incoming.citations);
+  for (const field of ["downloads", "views"]) {
+    if (Number.isFinite(incoming[field])) merged[field] = Math.max(merged[field] || 0, incoming[field]);
+  }
   merged.sources = [...new Map([...(existing.sources || []), ...(incoming.sources || [])].map(source => [source.id, source])).values()];
   merged.provenance = { ...(incoming.provenance || {}), ...(existing.provenance || {}) };
   if (title && title !== existing.title && incoming.provenance?.title) merged.provenance.title = incoming.provenance.title;
   return merged;
 }
+
+function mergeDatasetMetadata(existing, incoming) {
+  if (!existing) return incoming;
+  if (!incoming) return existing;
+  const merged = { ...existing };
+  const preferIncoming = incoming.source === "DataCite" && existing.source !== "DataCite";
+  for (const [field, value] of Object.entries(incoming)) {
+    if (Array.isArray(merged[field]) && Array.isArray(value)) {
+      merged[field] = mergeDatasetArray(field, merged[field], value);
+    } else if (!isEmpty(value) && (preferIncoming || isEmpty(merged[field]))) {
+      merged[field] = value;
+    }
+  }
+  return merged;
+}
+
+function mergeDatasetArray(field, existing, incoming) {
+  const unique = new Map();
+  for (const item of [...existing, ...incoming]) {
+    const key = datasetMetadataKey(field, item);
+    const current = unique.get(key);
+    if (!current) {
+      unique.set(key, item);
+      continue;
+    }
+    if (field === "creators") {
+      unique.set(key, {
+        ...current,
+        ...item,
+        orcid: item.orcid || current.orcid,
+        affiliations: [...new Set([...(current.affiliations || []), ...(item.affiliations || [])])]
+      });
+    } else if (field === "related" || field === "funding" || field === "licenses") {
+      unique.set(key, { ...current, ...item });
+    }
+  }
+  return [...unique.values()];
+}
+
+function datasetMetadataKey(field, item) {
+  if (typeof item === "string") return item.trim().toLocaleLowerCase();
+  if (!item || typeof item !== "object") return String(item);
+  const identity = field === "creators" ? item.orcid || item.name
+    : field === "related" ? item.url || item.title
+      : field === "funding" ? [item.funder, item.award, item.title].filter(Boolean).join("|")
+        : field === "licenses" ? item.url || item.identifier || item.label
+          : JSON.stringify(item);
+  return String(identity || JSON.stringify(item)).trim().toLocaleLowerCase();
+}
+
 
 function mergeAuthorProfiles(...groups) {
   const profiles = new Map();
