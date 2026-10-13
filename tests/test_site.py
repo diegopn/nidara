@@ -184,6 +184,16 @@ class SiteIntegrityTests(unittest.TestCase):
             "es": "Añadir referencia a la lista",
         })
 
+    def test_result_cards_do_not_show_source_name_tags(self):
+        card = re.search(r"function resultCard\(work\) \{([\s\S]*?)\n\}\n\nfunction toggleFavorite", self.app)
+        self.assertIsNotNone(card)
+        self.assertNotIn("work.sources", card.group(1))
+        self.assertIn('element("span", "type-tag"', card.group(1))
+        self.assertIn('element("span", "oa-tag"', card.group(1))
+
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        self.assertNotIn(".source-tag", css)
+
     def test_h1_and_h2_use_semibold_weight(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
         heading_rule = re.search(r"h1, h2\s*\{([^}]*)\}", css)

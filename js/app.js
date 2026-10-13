@@ -329,11 +329,10 @@ function typeLabel(type) {
 
 function resultCard(work) {
   const article = element("article", "result");
-  const sourceTags = element("div", "result-sources");
-  for (const source of work.sources || []) sourceTags.append(element("span", "source-tag", source.label));
-  sourceTags.append(element("span", "type-tag", typeLabel(work.type)));
-  if (work.openAccess === true) sourceTags.append(element("span", "oa-tag", t("openAccess")));
-  article.append(sourceTags);
+  const badges = element("div", "result-badges");
+  badges.append(element("span", "type-tag", typeLabel(work.type)));
+  if (work.openAccess === true) badges.append(element("span", "oa-tag", t("openAccess")));
+  article.append(badges);
 
   const headingRow = element("div", "result-heading-row");
   const heading = element("h3");
