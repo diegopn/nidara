@@ -587,3 +587,22 @@ class SiteIntegrityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_datasets_have_research_metadata_cards_and_refinement_controls(self):
+        self.assertIn('function datasetCard(work)', self.app)
+        for field in ("description", "licenses", "version", "formats", "sizes", "locations", "funding", "related"):
+            self.assertIn(f"metadata.{field}", self.app)
+        self.assertIn('datasetFiltersPanel.hidden = activeView !== "datasets" || !activeFilters || !datasets.length', self.app)
+        self.assertIn('sourceIds: [...DEFAULT_SOURCES]', self.app)
+        self.assertIn('const DEFAULT_SOURCES = ["openalex", "crossref", "datacite"]', self.app)
+        self.assertIn('{ id: "datacite", label: "DataCite", supports: ["dataset"]', (ROOT / "js/providers/index.js").read_text(encoding="utf-8"))
+
+        for element_id in ("dataset-filters", "dataset-repository", "dataset-format", "dataset-related-only", "dataset-location"):
+            self.assertIn(f'id="{element_id}"', self.html)
+        self.assertIn('id="dataset-download-sort"', self.html)
+        self.assertIn('.dataset-facts', (ROOT / "css/style.css").read_text(encoding="utf-8"))
+
+        messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
+        for locale, values in messages.items():
+            for key in ("datasetViewNote", "datasetRepositoryFilter", "datasetFormatFilter", "datasetRelatedOnly", "datasetLocationFilter", "datasetFilteredCount", "datasetNoLicense", "datasetMetadataGaps", "datasetOpenRepository"):
+                self.assertTrue(values.get(key), f"Missing {key} in {locale}")
