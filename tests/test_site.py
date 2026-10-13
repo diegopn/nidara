@@ -92,6 +92,23 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('data-view="datasets"', self.html)
         self.assertIn('data-i18n="authorScope"', self.html)
 
+    def test_export_action_is_prominent_next_to_the_result_listing(self):
+        listing_toolbar = re.search(r'<div class="listing-toolbar">([\s\S]*?)<p id="view-note"', self.html)
+        self.assertIsNotNone(listing_toolbar)
+        toolbar = listing_toolbar.group(1)
+        self.assertIn('id="sort"', toolbar)
+        self.assertIn('id="export-button"', toolbar)
+        self.assertLess(toolbar.index('id="sort"'), toolbar.index('id="export-button"'))
+        self.assertIn('class="listing-export"', toolbar)
+        self.assertIn('class="export-button"', toolbar)
+
+        messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
+        self.assertEqual({locale: values["export"] for locale, values in messages.items()}, {
+            "pt-BR": "Exportar",
+            "en": "Export",
+            "es": "Exportar",
+        })
+
     def test_search_uses_default_sources_and_sorting_is_in_results(self):
         search_form = re.search(r'<form\b[^>]*id="search-form"[^>]*>(.*?)</form>', self.html, re.DOTALL)
         self.assertIsNotNone(search_form)

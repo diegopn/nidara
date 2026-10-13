@@ -143,9 +143,15 @@ h3 { font-family: var(--sans); }
 }
 #search-button:hover, .more button:hover, .authors-more:hover { background: var(--button-hover); }
 #search-button:disabled { cursor: wait; }
-.listing-toolbar { display: flex; justify-content: flex-end; margin: 9px 0 7px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.listing-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 9px 0 7px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .listing-toolbar .filter-field { display: flex; align-items: center; gap: 10px; }
-.listing-toolbar select { min-width: 180px; }
+.listing-toolbar #sort { min-width: 180px; }
+.listing-toolbar #export-format { min-width: 0; width: 96px; }
+.listing-export { display: flex; align-items: center; gap: 6px; padding: 4px; border: 1px solid var(--line); background: var(--research-surface); }
+.listing-export .export-choice { color: var(--ink); font-size: 11px; }
+.listing-export .export-choice select { min-height: 40px; padding: 6px 10px; font-size: 11px; }
+.export-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 8px 13px; border: 1px solid var(--button-bg); border-radius: 0; color: var(--button-text); background: var(--button-bg); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.export-button:not(:disabled):hover { background: var(--button-hover); }
 .filter-field :disabled { cursor: not-allowed; opacity: .68; }
 
 .results { padding: 44px 0 76px; }
@@ -230,9 +236,14 @@ footer { border-top: 1px solid var(--line); }
   .count { padding-top: 7px; text-align: left; }
   .results-tools { gap: 6px; }
   .results-tools button { padding-inline: 8px; }
-  .listing-toolbar { justify-content: stretch; }
+  .listing-toolbar { align-items: stretch; flex-direction: column; gap: 12px; }
   .listing-toolbar .filter-field { width: 100%; justify-content: space-between; }
-  .listing-toolbar select { min-width: 0; width: min(58%, 220px); }
+  .listing-toolbar #sort { min-width: 0; width: min(58%, 220px); }
+  .listing-toolbar #export-format { width: min(34%, 100px); }
+  .listing-export { width: auto; justify-content: space-between; }
+  .export-choice { flex: 1; justify-content: space-between; }
+  .export-choice select { width: min(34%, 100px); }
+  .export-button { flex: 1; }
   .result-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
   .result-tab { justify-content: center; gap: 5px; min-height: 44px; padding: 6px 4px; font-size: 10px; }
   .tab-count { min-width: 18px; min-height: 18px; font-size: 9px; }
