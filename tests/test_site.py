@@ -212,8 +212,8 @@ class SiteIntegrityTests(unittest.TestCase):
             self.assertIn("normalizePublicationYear", source, f"{provider} years must use shared validation")
 
     def test_brand_icon_is_used_as_site_icon_and_header_mark(self):
-        self.assertIn('rel="icon" type="image/svg+xml" href="./assets/nidara-mark.svg"', self.html)
-        self.assertIn('class="brand-mark" src="./assets/nidara-mark.svg"', self.html)
+        self.assertRegex(self.html, r'rel="icon" type="image/svg\+xml" href="\./assets/nidara-mark\.svg\?v=[a-f0-9]{12}"')
+        self.assertRegex(self.html, r'class="brand-mark" src="\./assets/nidara-mark\.svg\?v=[a-f0-9]{12}"')
         icon = self.site / "assets/nidara-mark.svg"
         self.assertTrue(icon.is_file())
         self.assertIn('viewBox="0 0 64 64"', icon.read_text(encoding="utf-8"))
@@ -224,7 +224,7 @@ class SiteIntegrityTests(unittest.TestCase):
     def test_footer_places_the_project_mark_left_and_creator_link_right(self):
         footer = re.search(r"<footer>([\s\S]*?)</footer>", self.html)
         self.assertIsNotNone(footer)
-        self.assertRegex(footer.group(1), r'<div class="footer-brand">\s*<img class="footer-mark" src="\./assets/nidara-mark\.svg" alt="">\s*<strong>Nidara</strong>\s*</div>')
+        self.assertRegex(footer.group(1), r'<div class="footer-brand">\s*<img class="footer-mark" src="\./assets/nidara-mark\.svg\?v=[a-f0-9]{12}" alt="">\s*<strong>Nidara</strong>\s*</div>')
         self.assertRegex(footer.group(1), r'<a\b(?=[^>]*href="https://diegopn\.github\.io/")[^>]*>Diego Pereira</a>')
         self.assertLess(footer.group(1).index('class="footer-brand"'), footer.group(1).index('class="footer-author"'))
         self.assertNotIn('class="footer-links"', footer.group(1))
@@ -321,12 +321,12 @@ class SiteIntegrityTests(unittest.TestCase):
             html = route.read_text(encoding="utf-8")
             self.assertIn(f'<html lang="{locale}">', html)
             self.assertIn(f'href="https://diegopn.github.io/nidara/{locale}/"', html)
-            self.assertIn('href="../css/style.css"', html)
-            self.assertIn('src="../js/app.js"', html)
-            self.assertIn('href="../assets/nidara-mark.svg"', html)
-            self.assertIn('src="../assets/nidara-mark.svg"', html)
+            self.assertRegex(html, r'href="\.\./css/style\.css\?v=[a-f0-9]{12}"')
+            self.assertRegex(html, r'src="\.\./js/app\.js\?v=[a-f0-9]{12}"')
+            self.assertRegex(html, r'href="\.\./assets/nidara-mark\.svg\?v=[a-f0-9]{12}"')
+            self.assertRegex(html, r'src="\.\./assets/nidara-mark\.svg\?v=[a-f0-9]{12}"')
             self.assertIn('href="../"', html)
-            self.assertEqual(html.count('src="../assets/nidara-mark.svg"'), 2)
+            self.assertEqual(len(re.findall(r'src="\.\./assets/nidara-mark\.svg\?v=[a-f0-9]{12}"', html)), 2)
             language_nav = re.search(r'<nav\b[^>]*id="language-switcher"[^>]*>(.*?)</nav>', html, re.DOTALL)
             self.assertIsNotNone(language_nav)
             language_links = {target_locale: href for href, target_locale in re.findall(r'<a href="([^"]+)" data-locale="([^"]+)"', language_nav.group(1))}
@@ -334,6 +334,24 @@ class SiteIntegrityTests(unittest.TestCase):
             self.assertEqual(language_links, expected_links, f"Broken locale switch from /{locale}/")
             for asset in ("../css/style.css", "../js/app.js", "../assets/nidara-mark.svg"):
                 self.assertTrue((route.parent / asset).resolve().is_file(), f"Broken {locale} asset: {asset}")
+
+    def test_generated_pages_and_module_imports_share_a_build_version(self):
+        script = re.search(r'<script type="module" src="\./js/app\.js\?v=([a-f0-9]{12})">', self.html)
+        stylesheet = re.search(r'<link rel="stylesheet" href="\./css/style\.css\?v=([a-f0-9]{12})">', self.html)
+        self.assertIsNotNone(script, "The generated page must refresh cached JavaScript after a deployment")
+        self.assertIsNotNone(stylesheet, "The generated page must refresh cached styles after a deployment")
+        version = script.group(1)
+        self.assertEqual(stylesheet.group(1), version)
+
+        for locale in ("en", "es"):
+            html = (self.site / locale / "index.html").read_text(encoding="utf-8")
+            self.assertIn(f'src="../js/app.js?v={version}"', html)
+            self.assertIn(f'href="../css/style.css?v={version}"', html)
+
+        for source in (self.site / "js").rglob("*.js"):
+            imports = re.findall(r'\b(?:from|import)\s*["\']((?:\.\.?/)[^"\']+)["\']', source.read_text(encoding="utf-8"))
+            for specifier in imports:
+                self.assertEqual(urlsplit(specifier).query, f"v={version}", f"Unversioned module import in {source.name}: {specifier}")
 
     def test_distributed_license_requires_the_project_notice(self):
         license_text = (self.site / "LICENSE").read_text(encoding="utf-8")
@@ -355,7 +373,7 @@ class SiteIntegrityTests(unittest.TestCase):
             imports.extend(re.findall(r'import\s+[^;]+?\s+from\s+["\']([^"\']+\.json)["\']', code))
             for module in imports:
                 if module.startswith("."):
-                    self.assertTrue((source.parent / module).resolve().is_file(), f"Missing module {module} in {source.relative_to(ROOT)}")
+                    self.assertTrue((source.parent / urlsplit(module).path).resolve().is_file(), f"Missing module {module} in {source.relative_to(ROOT)}")
 
     def test_rendering_uses_text_apis_for_external_metadata(self):
         sources = [path.read_text(encoding="utf-8") for path in (ROOT / "js").rglob("*.js")]
