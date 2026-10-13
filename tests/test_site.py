@@ -261,9 +261,9 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIsNotNone(dark)
         self.assertIsNotNone(system_dark)
         for variables, values in (
-            (light.group(1), ("#f0f1ea", "#e5eee7", "#d8e5dc", "#c3d7ca")),
-            (dark.group(1), ("#242831", "#33473d", "#3b5147", "#587064")),
-            (system_dark.group(1), ("#242831", "#33473d", "#3b5147", "#587064")),
+            (light.group(1), ("#f5f3ed", "#35594f", "#2e4b42", "#35594f")),
+            (dark.group(1), ("#242831", "#35594f", "#2e4b42", "#35594f")),
+            (system_dark.group(1), ("#242831", "#35594f", "#2e4b42", "#35594f")),
         ):
             for name, value in zip(("--result-surface", "--save-surface", "--save-hover-surface", "--save-border"), values):
                 self.assertIn(f"{name}: {value}", variables)
