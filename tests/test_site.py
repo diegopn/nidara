@@ -126,6 +126,20 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('const DEFAULT_SOURCES = ["openalex", "crossref"]', self.app)
         self.assertRegex(self.app, r'sortSelect\.addEventListener\("change"[\s\S]{0,220}form\.requestSubmit\(\)')
 
+    def test_mobile_search_button_follows_the_year_fields(self):
+        search_form = re.search(r'<form\b[^>]*id="search-form"[^>]*>(.*?)</form>', self.html, re.DOTALL)
+        self.assertIsNotNone(search_form)
+        self.assertGreater(search_form.group(1).index('id="search-button"'), search_form.group(1).index("</fieldset>"))
+
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        mobile = css.split("@media (max-width: 760px)", 1)[1].split("@media (max-width: 390px)", 1)[0]
+        form_style = re.search(r"#search-form\s*\{([^}]*)\}", mobile)
+        self.assertIsNotNone(form_style)
+        self.assertRegex(form_style.group(1), r"grid-template-columns:\s*minmax\(0,\s*1fr\)")
+        button_style = re.search(r"#search-button\s*\{([^}]*)\}", mobile)
+        self.assertIsNotNone(button_style)
+        self.assertRegex(button_style.group(1), r"width:\s*100%")
+
     def test_provider_years_stay_within_the_supported_publication_range(self):
         utilities = (ROOT / "js/core/work-utils.js").read_text(encoding="utf-8")
         self.assertRegex(utilities, r'export function normalizePublicationYear\([\s\S]*?year >= 1900 && year <= 2100')
@@ -179,6 +193,19 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn("--research-surface: #272e3b", css)
         self.assertNotIn("--page-surface: #18221f", css)
         self.assertNotIn("--research-surface: #202e29", css)
+
+        dark = re.search(r':root\[data-theme="dark"\]\s*\{([^}]*)\}', css)
+        self.assertIsNotNone(dark)
+        self.assertIn("--button-bg: #426b62", dark.group(1))
+        self.assertIn("--button-text: #ffffff", dark.group(1))
+        self.assertIn("--button-hover: #527d72", dark.group(1))
+
+    def test_hero_heading_uses_amiri(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        hero_heading = re.search(r"\.hero h1\s*\{([^}]*)\}", css)
+        self.assertIsNotNone(hero_heading)
+        self.assertRegex(hero_heading.group(1), r"font-family:\s*var\(--serif\)")
+        self.assertIn('--serif: "Amiri", Georgia, serif', css)
 
     def test_mobile_header_actions_stay_on_the_brand_row(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
