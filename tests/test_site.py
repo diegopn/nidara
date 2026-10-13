@@ -119,6 +119,39 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn("--page-surface: #fbfaf7", css)
         self.assertIn("--accent: #426b62", css)
 
+    def test_hero_and_search_filters_share_one_section_with_clear_headline(self):
+        hero = re.search(r'<section class="hero"[\s\S]*?</section>', self.html)
+        self.assertIsNotNone(hero)
+        self.assertIn('id="search-form"', hero.group(0))
+        self.assertNotIn('<section class="search-area"', self.html)
+        messages = json.loads((ROOT / "js/core/translations.json").read_text(encoding="utf-8"))
+        self.assertEqual(
+            {locale: values["heroTitle"] for locale, values in messages.items()},
+            {
+                "pt-BR": "Encontre conhecimento científico aberto.",
+                "en": "Find open scientific knowledge.",
+                "es": "Encuentra conocimiento científico abierto.",
+            },
+        )
+
+    def test_dark_theme_uses_soft_slate_colors_instead_of_green_surfaces(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        self.assertIn("--page-surface: #171b24", css)
+        self.assertIn("--hero-surface: #1e2430", css)
+        self.assertIn("--research-surface: #272e3b", css)
+        self.assertNotIn("--page-surface: #18221f", css)
+        self.assertNotIn("--research-surface: #202e29", css)
+
+    def test_mobile_header_actions_stay_on_the_brand_row(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        mobile = css.split("@media (max-width: 760px)", 1)[1].split("@media (max-width: 390px)", 1)[0]
+        topbar = re.search(r"\.topbar\s*\{([^}]*)\}", mobile)
+        actions = re.search(r"\.header-actions\s*\{([^}]*)\}", mobile)
+        self.assertIsNotNone(topbar)
+        self.assertIsNotNone(actions)
+        self.assertIn("flex-wrap: nowrap", topbar.group(1))
+        self.assertNotIn("100%", actions.group(1))
+
     def test_author_and_saved_counts_match_the_visible_scope(self):
         self.assertRegex(self.app, r'selectedAuthor\s*\?\s*t\("authorWorksCount"')
         self.assertIn('pluralMessage("savedCount", items.length)', self.app)

@@ -35,28 +35,28 @@
 
   <main id="conteudo">
     <section class="hero" aria-labelledby="titulo">
-      <div class="content-width hero-inner">
-        <p class="eyebrow" data-i18n="heroEyebrow">Pesquisa científica aberta</p>
-        <h1 id="titulo" data-i18n="heroTitle">Pesquisas, autores e datasets.</h1>
-        <p class="lead" data-i18n="lead">Pesquise em fontes acadêmicas abertas e veja publicações, autores e conjuntos de dados em áreas próprias.</p>
-      </div>
-    </section>
-
-    <section class="search-area" aria-label="Pesquisa" data-i18n-aria-label="searchSection">
       <div class="content-width">
-        <form id="search-form" role="search" novalidate>
-          <label class="query-label" for="query" data-i18n="searchPrompt">O que você quer descobrir?</label>
-          <div class="searchline">
-            <input id="query" name="q" type="search" minlength="2" maxlength="250" placeholder="Assunto, método ou conceito" data-i18n-placeholder="searchPlaceholder" autocomplete="off" required>
-            <button id="search-button" type="submit"><span data-i18n="searchButton">Pesquisar</span> <span aria-hidden="true">→</span></button>
-          </div>
+        <div class="hero-inner">
+          <p class="eyebrow" data-i18n="heroEyebrow">Pesquisa científica aberta</p>
+          <h1 id="titulo" data-i18n="heroTitle">Encontre conhecimento científico aberto.</h1>
+          <p class="lead" data-i18n="lead">Pesquise em fontes acadêmicas abertas e veja publicações, autores e conjuntos de dados em áreas próprias.</p>
+        </div>
 
-          <fieldset class="filters" aria-label="Filtros da pesquisa" data-i18n-aria-label="searchFilters">
-            <legend data-i18n="yearRange">Período de publicação</legend>
-            <label class="filter-field" for="year-from"><span data-i18n="yearFrom">De</span><input id="year-from" name="from" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
-            <label class="filter-field" for="year-to"><span data-i18n="yearTo">Até</span><input id="year-to" name="to" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
-          </fieldset>
-        </form>
+        <div class="search-area">
+          <form id="search-form" role="search" novalidate>
+            <label class="query-label" for="query" data-i18n="searchPrompt">O que você quer descobrir?</label>
+            <div class="searchline">
+              <input id="query" name="q" type="search" minlength="2" maxlength="250" placeholder="Assunto, método ou conceito" data-i18n-placeholder="searchPlaceholder" autocomplete="off" required>
+              <button id="search-button" type="submit"><span data-i18n="searchButton">Pesquisar</span> <span aria-hidden="true">→</span></button>
+            </div>
+
+            <fieldset class="filters" aria-label="Filtros da pesquisa" data-i18n-aria-label="searchFilters">
+              <legend data-i18n="yearRange">Período de publicação</legend>
+              <label class="filter-field" for="year-from"><span data-i18n="yearFrom">De</span><input id="year-from" name="from" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
+              <label class="filter-field" for="year-to"><span data-i18n="yearTo">Até</span><input id="year-to" name="to" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
+            </fieldset>
+          </form>
+        </div>
       </div>
     </section>
 
