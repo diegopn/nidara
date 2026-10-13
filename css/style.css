@@ -145,7 +145,7 @@ h3 { font-family: var(--sans); }
 .listing-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 9px 0 7px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .listing-toolbar .filter-field { display: flex; align-items: center; gap: 10px; }
 .listing-toolbar #sort { min-width: 180px; }
-.references-dialog { box-sizing: border-box; width: min(760px, calc(100% - 32px)); max-width: none; max-height: min(84vh, 760px); overflow: hidden; padding: 24px; border: 1px solid var(--line); color: var(--ink); background: var(--page-surface); box-shadow: 0 20px 70px rgb(14 24 22 / 28%); }
+.references-dialog { box-sizing: border-box; width: min(760px, calc(100% - 32px)); max-width: none; max-height: min(84vh, 760px); margin: 24px auto auto; overflow: hidden; padding: 24px; border: 1px solid var(--line); color: var(--ink); background: var(--page-surface); box-shadow: 0 20px 70px rgb(14 24 22 / 28%); }
 .references-dialog[open] { display: flex; flex-direction: column; }
 .references-dialog::backdrop { background: rgb(15 23 27 / 58%); backdrop-filter: blur(2px); }
 .references-dialog-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
@@ -168,6 +168,8 @@ h3 { font-family: var(--sans); }
 .references-dialog .reference-list-toolbar { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 12px; margin: 14px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line); }
 .references-dialog .export-choice { color: var(--ink); font-size: 11px; }
 .references-dialog .export-choice select { min-height: 40px; padding: 6px 10px; font-size: 11px; }
+.references-clear { min-height: 42px; margin-right: auto; padding: 8px 12px; border: 1px solid var(--line); color: var(--ink); background: var(--page-surface); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.references-clear:not(:disabled):hover { background: var(--research-surface); }
 .export-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 8px 13px; border: 1px solid var(--button-bg); border-radius: 0; color: var(--button-text); background: var(--button-bg); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .export-button:not(:disabled):hover { background: var(--button-hover); }
 .export-count { display: inline-grid; min-width: 20px; min-height: 20px; padding-inline: 3px; place-items: center; border: 1px solid currentColor; font-size: 10px; }
@@ -254,9 +256,9 @@ footer { border-top: 1px solid var(--line); }
   .listing-toolbar { align-items: stretch; flex-direction: column; gap: 12px; }
   .listing-toolbar .filter-field { width: 100%; justify-content: space-between; }
   .listing-toolbar #sort { min-width: 0; width: min(58%, 220px); }
-  .references-dialog { width: calc(100% - 20px); max-height: calc(100dvh - 20px); padding: 18px 14px; }
-  .references-dialog .reference-list-toolbar { align-items: stretch; justify-content: space-between; gap: 8px; }
-  .references-dialog .export-choice { flex: 1; justify-content: space-between; }
+  .references-dialog { width: calc(100% - 20px); max-height: calc(100dvh - 20px); margin-top: 10px; padding: 18px 14px; }
+  .references-dialog .reference-list-toolbar { align-items: stretch; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+  .references-dialog .export-choice { flex: 1 1 125px; justify-content: space-between; }
   .references-dialog #export-format { min-width: 88px; width: 88px; }
   .references-dialog .export-choice select { width: min(34%, 100px); }
   .references-item { gap: 8px; padding: 10px; }

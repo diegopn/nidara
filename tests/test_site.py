@@ -135,6 +135,45 @@ class SiteIntegrityTests(unittest.TestCase):
             "es": "Exportar lista",
         })
 
+    def test_reference_dialog_is_top_aligned_and_can_clear_the_list(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        dialog = re.search(r"\.references-dialog\s*\{([^}]*)\}", css)
+        self.assertIsNotNone(dialog)
+        self.assertRegex(dialog.group(1), r"margin:\s*24px auto auto")
+        mobile = css.split("@media (max-width: 760px)", 1)[1].split("@media (max-width: 390px)", 1)[0]
+        mobile_dialog = re.search(r"\.references-dialog\s*\{([^}]*)\}", mobile)
+        self.assertIsNotNone(mobile_dialog)
+        self.assertRegex(mobile_dialog.group(1), r"margin-top:\s*10px")
+        self.assertIn('id="references-clear"', self.html)
+        self.assertIn('referencesClear.addEventListener("click", clearReferenceList)', self.app)
+        self.assertIn("referencesClear.disabled = works.length === 0", self.app)
+
+        clear_handler = re.search(r"function clearReferenceList\(\) \{([\s\S]*?)\n\}", self.app)
+        self.assertIsNotNone(clear_handler)
+        for behavior in ("new Map()", "persistFavorites(", "refreshSavedCount()", "renderCurrentItems()"):
+            self.assertIn(behavior, clear_handler.group(1))
+
+        messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
+        self.assertEqual({locale: values["clearReferenceList"] for locale, values in messages.items()}, {
+            "pt-BR": "Limpar lista",
+            "en": "Clear list",
+            "es": "Vaciar lista",
+        })
+
+    def test_page_reload_clears_search_and_focuses_the_query_field(self):
+        query = re.search(r'<input\b(?=[^>]*id="query")([^>]*)>', self.html)
+        self.assertIsNotNone(query)
+        self.assertRegex(query.group(1), r"\bautofocus\b")
+        self.assertIn("queryInput.focus({ preventScroll: true })", self.app)
+
+        clear_search = re.search(r"function clearSearchFromUrlOnReload\(\) \{([\s\S]*?)\n\}", self.app)
+        self.assertIsNotNone(clear_search)
+        self.assertIn('navigation?.type !== "reload"', clear_search.group(1))
+        self.assertIn('queryInput.value = ""', clear_search.group(1))
+        self.assertIn('["q", "from", "to", "type", "sort", "sources", "view", "author"]', clear_search.group(1))
+        self.assertIn("url.searchParams.delete(key)", clear_search.group(1))
+        self.assertRegex(self.app, r"const reloaded = clearSearchFromUrlOnReload\(\);[\s\S]*?if \(!reloaded\) filtersFromUrl\(\);")
+
     def test_reference_list_uses_a_bookmark_and_exports_the_entire_selection(self):
         self.assertIn('data-i18n="selectionCart"', self.html)
         self.assertIn('id="saved-toggle"', self.html)

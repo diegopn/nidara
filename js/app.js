@@ -26,6 +26,7 @@ const referencesDialogClose = document.querySelector("#references-dialog-close")
 const referencesDialogCount = document.querySelector("#references-count");
 const referencesEmpty = document.querySelector("#references-empty");
 const referencesList = document.querySelector("#references-list");
+const referencesClear = document.querySelector("#references-clear");
 const exportCount = document.querySelector("#export-count");
 const resultTabs = document.querySelector("#result-tabs");
 const exportButton = document.querySelector("#export-button");
@@ -111,6 +112,7 @@ function renderSavedReferences() {
   const works = [...favorites.values()];
   exportCount.textContent = String(works.length);
   exportButton.disabled = works.length === 0;
+  referencesClear.disabled = works.length === 0;
   referencesDialogCount.textContent = pluralMessage("savedCount", works.length);
   referencesEmpty.hidden = works.length > 0;
   referencesList.hidden = works.length === 0;
@@ -406,6 +408,17 @@ function toggleFavorite(work) {
   else setStatus(t(removing ? "removedFromCart" : "addedToCart"));
 }
 
+function clearReferenceList() {
+  if (favorites.size === 0) return;
+  const nextFavorites = new Map();
+  const persisted = persistFavorites(nextFavorites);
+  favorites = nextFavorites;
+  refreshSavedCount();
+  renderCurrentItems();
+  referencesDialogClose.focus();
+  if (!persisted) setStatus(t("storageFailure"));
+}
+
 function openReferencesDialog() {
   renderSavedReferences();
   referencesDialog.showModal();
@@ -464,6 +477,16 @@ function filtersFromUrl() {
   const sort = url.searchParams.get("sort");
   if (["newest", "cited"].includes(sort)) sortSelect.value = sort;
   form.requestSubmit();
+}
+
+function clearSearchFromUrlOnReload() {
+  const navigation = performance.getEntriesByType("navigation")[0];
+  if (navigation?.type !== "reload") return false;
+  queryInput.value = "";
+  const url = new URL(location.href);
+  for (const key of ["q", "from", "to", "type", "sort", "sources", "view", "author"]) url.searchParams.delete(key);
+  history.replaceState(null, "", url);
+  return true;
 }
 
 function validYear(value) {
@@ -599,6 +622,7 @@ sortSelect.addEventListener("change", () => {
   if (activeFilters) form.requestSubmit();
 });
 savedToggle.addEventListener("click", openReferencesDialog);
+referencesClear.addEventListener("click", clearReferenceList);
 referencesDialogClose.addEventListener("click", () => referencesDialog.close());
 referencesDialog.addEventListener("close", () => {
   savedToggle.setAttribute("aria-expanded", "false");
@@ -631,4 +655,6 @@ setupLanguage();
 setupTheme();
 refreshSavedCount();
 renderCurrentItems();
-filtersFromUrl();
+const reloaded = clearSearchFromUrlOnReload();
+if (!reloaded) filtersFromUrl();
+queryInput.focus({ preventScroll: true });

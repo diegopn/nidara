@@ -51,7 +51,7 @@
         <div class="search-area">
           <form id="search-form" role="search" novalidate>
             <label class="query-label" for="query" data-i18n="searchPrompt">O que você quer descobrir?</label>
-            <input id="query" name="q" type="search" minlength="2" maxlength="250" placeholder="Assunto, método ou conceito" data-i18n-placeholder="searchPlaceholder" autocomplete="off" required>
+            <input id="query" name="q" type="search" minlength="2" maxlength="250" placeholder="Assunto, método ou conceito" data-i18n-placeholder="searchPlaceholder" autocomplete="off" autofocus required>
 
             <fieldset class="filters" aria-label="Filtros da pesquisa" data-i18n-aria-label="searchFilters">
               <legend data-i18n="yearRange">Período de publicação</legend>
@@ -113,6 +113,7 @@
     </div>
     <ol class="references-list" id="references-list" aria-label="Referências selecionadas" data-i18n-aria-label="favoritesTitle"></ol>
     <div class="reference-list-toolbar">
+      <button id="references-clear" class="references-clear" type="button" disabled data-i18n="clearReferenceList">Limpar lista</button>
       <label class="export-choice" for="export-format"><span data-i18n="format">Formato</span>
         <select id="export-format" aria-label="Formato da exportação" data-i18n-aria-label="exportFormat">
           <option value="bibtex">BibTeX</option>
