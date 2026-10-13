@@ -109,6 +109,13 @@ class SiteIntegrityTests(unittest.TestCase):
             "es": "Exportar",
         })
 
+    def test_mobile_export_format_keeps_its_full_label_visible(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        mobile = css.split("@media (max-width: 760px)", 1)[1].split("@media (max-width: 390px)", 1)[0]
+        format_control = re.search(r"\.listing-toolbar #export-format\s*\{([^}]*)\}", mobile)
+        self.assertIsNotNone(format_control)
+        self.assertRegex(format_control.group(1), r"min-width:\s*88px")
+
     def test_search_uses_default_sources_and_sorting_is_in_results(self):
         search_form = re.search(r'<form\b[^>]*id="search-form"[^>]*>(.*?)</form>', self.html, re.DOTALL)
         self.assertIsNotNone(search_form)

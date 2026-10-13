@@ -239,7 +239,7 @@ footer { border-top: 1px solid var(--line); }
   .listing-toolbar { align-items: stretch; flex-direction: column; gap: 12px; }
   .listing-toolbar .filter-field { width: 100%; justify-content: space-between; }
   .listing-toolbar #sort { min-width: 0; width: min(58%, 220px); }
-  .listing-toolbar #export-format { width: min(34%, 100px); }
+  .listing-toolbar #export-format { min-width: 88px; width: 88px; }
   .listing-export { width: auto; justify-content: space-between; }
   .export-choice { flex: 1; justify-content: space-between; }
   .export-choice select { width: min(34%, 100px); }
