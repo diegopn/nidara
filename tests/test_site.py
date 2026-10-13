@@ -519,9 +519,12 @@ class SiteIntegrityTests(unittest.TestCase):
 
     def test_distributed_license_requires_the_project_notice(self):
         license_text = (self.site / "LICENSE").read_text(encoding="utf-8")
-        self.assertIn("PolyForm Noncommercial License 1.0.0", license_text)
-        self.assertIn("https://polyformproject.org/licenses/noncommercial/1.0.0", license_text)
-        self.assertIn("Required Notice: Copyright Diego Pereira do Nascimento (https://github.com/diegopn/nidara)", license_text)
+        normalized_license = " ".join(license_text.split())
+        self.assertTrue(license_text.startswith("MIT License"))
+        self.assertIn("Copyright (c) 2026 Diego Pereira do Nascimento — Nidara (https://github.com/diegopn/nidara)", license_text)
+        self.assertIn("without restriction", license_text)
+        self.assertIn("The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.", normalized_license)
+        self.assertNotIn("Noncommercial", license_text)
 
     def test_local_assets_and_module_imports_exist(self):
         for asset in self.parser.local_assets:

@@ -24,7 +24,7 @@ O GitHub Actions verifica o site e publica as três rotas no GitHub Pages quando
 
 ## Licença
 
-O código está sob a [PolyForm Noncommercial 1.0.0](LICENSE), que permite usos não comerciais e exige que cópias distribuídas incluam o texto ou link da licença e o aviso de copyright com o endereço do projeto. Ela não autoriza uso comercial sem uma autorização separada. Por restringir o uso comercial, esta é uma licença de código-fonte disponível, não uma licença open source segundo a definição da OSI. A licença não exige que cada uso seja comunicado diretamente ao autor.
+O código está sob a [licença MIT](LICENSE), que permite uso, modificação, redistribuição e uso comercial. Cópias ou partes substanciais do software devem preservar o aviso de copyright e o texto da licença. O aviso identifica Nidara e inclui o endereço do projeto.
 
 ## Fontes e limites
 
