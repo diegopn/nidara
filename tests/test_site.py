@@ -237,17 +237,36 @@ class SiteIntegrityTests(unittest.TestCase):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
         result = re.search(r"\.result\s*\{([^}]*)\}", css)
         self.assertIsNotNone(result)
-        self.assertRegex(result.group(1), r"background:\s*var\(--hero-surface\)")
+        self.assertRegex(result.group(1), r"background:\s*var\(--result-surface\)")
 
     def test_reference_button_is_secondary_to_the_search_button(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
         reference_button = re.search(r"\.save-button\s*\{([^}]*)\}", css)
+        reference_button_states = re.search(r"\.save-button:hover,\s*\.save-button\[aria-pressed=\"true\"\]\s*\{([^}]*)\}", css)
         search_button = re.search(r"#search-button,\s*\.more button,\s*\.authors-more\s*\{([^}]*)\}", css)
         self.assertIsNotNone(reference_button)
+        self.assertIsNotNone(reference_button_states)
         self.assertIsNotNone(search_button)
-        self.assertRegex(reference_button.group(1), r"border:\s*1px solid var\(--line\)")
-        self.assertRegex(reference_button.group(1), r"background:\s*var\(--page-surface\)")
+        self.assertRegex(reference_button.group(1), r"border:\s*1px solid var\(--save-border\)")
+        self.assertRegex(reference_button.group(1), r"background:\s*var\(--save-surface\)")
+        self.assertRegex(reference_button_states.group(1), r"background:\s*var\(--save-hover-surface\)")
         self.assertRegex(search_button.group(1), r"background:\s*var\(--button-bg\)")
+
+    def test_result_and_reference_surfaces_have_light_and_dark_colors(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        light = re.search(r":root\s*\{([^}]*)\}", css)
+        dark = re.search(r':root\[data-theme="dark"\]\s*\{([^}]*)\}', css)
+        system_dark = re.search(r"@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme\]\)\s*\{([^}]*)\}", css)
+        self.assertIsNotNone(light)
+        self.assertIsNotNone(dark)
+        self.assertIsNotNone(system_dark)
+        for variables, values in (
+            (light.group(1), ("#e8edf1", "#e2eee8", "#d4e5dc", "#c6d7ce")),
+            (dark.group(1), ("#222b38", "#263d35", "#2b4038", "#4b7162")),
+            (system_dark.group(1), ("#222b38", "#263d35", "#2b4038", "#4b7162")),
+        ):
+            for name, value in zip(("--result-surface", "--save-surface", "--save-hover-surface", "--save-border"), values):
+                self.assertIn(f"{name}: {value}", variables)
 
     def test_h1_and_h2_use_semibold_weight(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
