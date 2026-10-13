@@ -225,6 +225,24 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn("flex-wrap: nowrap", topbar.group(1))
         self.assertNotIn("100%", actions.group(1))
 
+    def test_mobile_sections_have_eighty_pixel_vertical_padding(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        mobile = css.split("@media (max-width: 760px)", 1)[1].split("@media (max-width: 390px)", 1)[0]
+        for selector in (r"\.hero", r"\.results"):
+            rules = re.search(selector + r"\s*\{([^}]*)\}", mobile)
+            self.assertIsNotNone(rules)
+            self.assertRegex(rules.group(1), r"padding-block:\s*80px")
+
+        hero_content = re.search(r"\.hero > \.content-width\s*\{([^}]*)\}", mobile)
+        hero_copy = re.search(r"\.hero-inner\s*\{([^}]*)\}", mobile)
+        hero_search = re.search(r"\.search-area\s*\{([^}]*)\}", mobile)
+        self.assertIsNotNone(hero_content)
+        self.assertIn("gap: 24px", hero_content.group(1))
+        self.assertIsNotNone(hero_copy)
+        self.assertIn("padding-block: 0", hero_copy.group(1))
+        self.assertIsNotNone(hero_search)
+        self.assertIn("padding-block: 0", hero_search.group(1))
+
     def test_author_and_saved_counts_match_the_visible_scope(self):
         self.assertRegex(self.app, r'selectedAuthor\s*\?\s*t\("authorWorksCount"')
         self.assertIn('pluralMessage("savedCount", items.length)', self.app)

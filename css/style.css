@@ -222,15 +222,17 @@ footer { border-top: 1px solid var(--line); }
   .saved-toggle .saved-label { display: none; }
   .saved-toggle #saved-count { min-width: 20px; margin: 0; font-size: 10px; }
   .theme-toggle { box-sizing: border-box; width: 40px; min-height: 40px; }
-  .hero-inner { padding-block: 30px 12px; }
+  .hero { padding-block: 80px; }
+  .hero > .content-width { display: grid; gap: 24px; }
+  .hero-inner { padding-block: 0; }
   .hero h1 { max-width: 600px; margin-block: 11px 9px; font-size: clamp(2.15rem, 9.2vw, 3.25rem); line-height: 1.06; }
   .lead { font-size: 13px; }
-  .search-area { padding-block: 10px 24px; }
+  .search-area { padding-block: 0; }
   #search-form { grid-template-columns: minmax(0, 1fr); padding: 15px 14px; }
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
   .filter-field { gap: 3px; }
   #search-button { width: 100%; padding-inline: 11px; }
-  .results { padding: 34px 0 55px; }
+  .results { padding-block: 80px; }
   .results-head { display: block; }
   h2 { font-size: clamp(1.8rem, 8vw, 2.4rem); }
   .count { padding-top: 7px; text-align: left; }
