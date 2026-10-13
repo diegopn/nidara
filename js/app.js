@@ -19,6 +19,8 @@ const more = document.querySelector("#more");
 const searchButton = document.querySelector("#search-button");
 const savedToggle = document.querySelector("#saved-toggle");
 const savedCount = document.querySelector("#saved-count");
+const exportCount = document.querySelector("#export-count");
+const resultTabs = document.querySelector("#result-tabs");
 const shareButton = document.querySelector("#share-button");
 const shareFallback = document.querySelector("#share-fallback");
 const shareUrl = document.querySelector("#share-url");
@@ -103,6 +105,8 @@ function persistFavorites(nextFavorites) {
 
 function refreshSavedCount() {
   savedCount.textContent = String(favorites.size);
+  exportCount.textContent = String(favorites.size);
+  savedToggle.setAttribute("aria-label", t("selectionCartCount", { count: formatNumber(favorites.size) }));
   savedToggle.setAttribute("aria-pressed", String(savedView));
 }
 
@@ -149,16 +153,18 @@ function updateViewControls(works, publications, authors) {
   viewCounts.publications.textContent = formatNumber(publications.length);
   viewCounts.authors.textContent = formatNumber(authors.length);
   viewCounts.datasets.textContent = formatNumber(datasets.length);
+  resultTabs.hidden = savedView;
   for (const tab of viewTabs) {
     const selected = tab.dataset.view === activeView;
     tab.setAttribute("aria-selected", String(selected));
     tab.tabIndex = selected ? 0 : -1;
   }
-  list.setAttribute("aria-labelledby", `${activeView}-tab`);
+  list.setAttribute("aria-labelledby", savedView ? "results-title" : `${activeView}-tab`);
   viewNote.textContent = t({
     publications: "publicationViewNote",
     authors: "authorViewNote",
-    datasets: "datasetViewNote"
+    datasets: "datasetViewNote",
+    selection: "selectionViewNote"
   }[activeView]);
   authorsScope.hidden = activeView !== "authors";
   authorsScope.textContent = t(savedView ? "authorScopeSaved" : "authorScope", {
@@ -203,7 +209,9 @@ function renderAuthors(authors) {
 }
 
 function visibleWorks(works) {
-  const matchingType = activeView === "datasets" ? datasetItems(works) : publicationItems(works);
+  const matchingType = activeView === "selection"
+    ? works
+    : activeView === "datasets" ? datasetItems(works) : publicationItems(works);
   return activeView === "authors"
     ? []
     : selectedAuthor
@@ -259,7 +267,7 @@ function renderCurrentItems() {
           ? t("loadedCount", { loaded: formatNumber(works.length), total: formatNumber(totalMatches()) })
           : "";
   shareButton.disabled = !activeFilters || savedView;
-  exportButton.disabled = works.length === 0 || activeView === "authors";
+  exportButton.disabled = favorites.size === 0;
   more.hidden = savedView || !Object.values(providerProgress).some(progress => progress.hasMore);
 }
 
@@ -301,10 +309,10 @@ function resultCard(work) {
 
   const key = workKey(work);
   const saved = favorites.has(key);
-  const save = element("button", "save-button", saved ? t("saved") : t("save"));
+  const save = element("button", "save-button", saved ? t("inCart") : t("addToCart"));
   save.type = "button";
   save.setAttribute("aria-pressed", String(saved));
-  save.setAttribute("aria-label", t(saved ? "removeSaved" : "saveLabel", { title: workTitle }));
+  save.setAttribute("aria-label", t(saved ? "removeFromCart" : "addToCartLabel", { title: workTitle }));
   save.addEventListener("click", () => toggleFavorite(work));
   headingRow.append(save);
   article.append(headingRow);
@@ -342,7 +350,8 @@ function resultCard(work) {
 function toggleFavorite(work) {
   const nextFavorites = new Map(favorites);
   const key = workKey(work);
-  if (nextFavorites.has(key)) nextFavorites.delete(key);
+  const removing = nextFavorites.has(key);
+  if (removing) nextFavorites.delete(key);
   else if (nextFavorites.size >= MAX_FAVORITES) {
     setStatus(t("maxFavorites", { count: MAX_FAVORITES }));
     return;
@@ -352,7 +361,7 @@ function toggleFavorite(work) {
   refreshSavedCount();
   renderCurrentItems();
   if (!persisted) setStatus(t("storageFailure"));
-  else if (savedView) setStatus(t("storageNote"));
+  else setStatus(t(removing ? "removedFromCart" : "addedToCart"));
 }
 
 function readFiltersFromForm() {
@@ -445,7 +454,7 @@ function selectView(view) {
   selectedAuthor = "";
   showAllAuthors = false;
   refreshSavedCount();
-  updateShareUrl(activeFilters);
+  if (!savedView) updateShareUrl(activeFilters);
   if (savedView) renderCurrentItems();
   else if (activeFilters && previousType !== (activeView === "datasets")) runSearch();
   else renderCurrentItems();
@@ -527,6 +536,11 @@ async function shareSearch() {
 
 function toggleSavedView() {
   savedView = !savedView;
+  if (savedView) {
+    activeView = "selection";
+    selectedAuthor = "";
+    showAllAuthors = false;
+  } else if (activeView === "selection") activeView = "publications";
   if (controller) controller.abort();
   requestId += 1;
   list.setAttribute("aria-busy", "false");
@@ -534,6 +548,7 @@ function toggleSavedView() {
   more.disabled = false;
   refreshSavedCount();
   renderCurrentItems();
+  if (savedView) title.focus();
   setStatus(savedView ? t("storageNote") : activeFilters ? t("searchResultsStatus") : t("searchOpenSources"));
 }
 
@@ -542,6 +557,7 @@ form.addEventListener("submit", event => {
   const filters = readFiltersFromForm();
   if (!filters) return;
   savedView = false;
+  if (activeView === "selection") activeView = "publications";
   selectedAuthor = "";
   showAllAuthors = false;
   refreshSavedCount();
@@ -558,14 +574,15 @@ authorsMore.addEventListener("click", () => {
 for (const tab of viewTabs) {
   tab.addEventListener("click", () => selectView(tab.dataset.view));
   tab.addEventListener("keydown", event => {
-    const currentIndex = viewTabs.indexOf(tab);
-    const nextIndex = event.key === "ArrowRight" ? (currentIndex + 1) % viewTabs.length
-      : event.key === "ArrowLeft" ? (currentIndex - 1 + viewTabs.length) % viewTabs.length
-        : -1;
+    const availableTabs = viewTabs.filter(candidate => !candidate.hidden);
+    const currentIndex = availableTabs.indexOf(tab);
+    const nextIndex = event.key === "ArrowRight" ? (currentIndex + 1) % availableTabs.length
+      : event.key === "ArrowLeft" ? (currentIndex - 1 + availableTabs.length) % availableTabs.length
+      : -1;
     if (nextIndex < 0) return;
     event.preventDefault();
-    viewTabs[nextIndex].focus();
-    viewTabs[nextIndex].click();
+    availableTabs[nextIndex].focus();
+    availableTabs[nextIndex].click();
   });
 }
 sortSelect.addEventListener("change", () => {
@@ -575,7 +592,7 @@ savedToggle.addEventListener("click", toggleSavedView);
 shareButton.addEventListener("click", shareSearch);
 exportButton.addEventListener("click", () => {
   try {
-    exportWorks(visibleWorks(savedView ? [...favorites.values()] : loadedItems), exportFormat.value, savedView ? t("favoritesTitle") : activeFilters?.query);
+    exportWorks([...favorites.values()], exportFormat.value, t("favoritesTitle"));
     setStatus(t("exportReady"));
   } catch (error) {
     setStatus(t("exportError"));

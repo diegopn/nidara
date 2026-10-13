@@ -103,10 +103,33 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('class="export-button"', toolbar)
 
         messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
-        self.assertEqual({locale: values["export"] for locale, values in messages.items()}, {
-            "pt-BR": "Exportar",
-            "en": "Export",
-            "es": "Exportar",
+        self.assertEqual({locale: values["exportSelected"] for locale, values in messages.items()}, {
+            "pt-BR": "Exportar seleção",
+            "en": "Export selection",
+            "es": "Exportar selección",
+        })
+
+    def test_selection_cart_exports_the_entire_selected_set(self):
+        self.assertIn('data-i18n="selectionCart"', self.html)
+        self.assertIn('id="saved-toggle"', self.html)
+        self.assertIn('id="saved-count"', self.html)
+        self.assertIn('data-i18n="exportSelected"', self.html)
+        self.assertIn('id="export-count"', self.html)
+        self.assertRegex(self.app, r'exportButton\.disabled\s*=\s*favorites\.size\s*===\s*0')
+        self.assertIn('activeView = "selection"', self.app)
+        self.assertIn("resultTabs.hidden = savedView", self.app)
+        self.assertRegex(self.app, r'activeView === "selection"\s*\?\s*works')
+        self.assertRegex(
+            self.app,
+            r'exportWorks\(\[\.\.\.favorites\.values\(\)\],\s*exportFormat\.value',
+        )
+        self.assertNotRegex(self.app, r'exportWorks\(visibleWorks\(')
+
+        messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
+        self.assertEqual({locale: values["selectionCart"] for locale, values in messages.items()}, {
+            "pt-BR": "Cesta",
+            "en": "Selection",
+            "es": "Selección",
         })
 
     def test_mobile_export_format_keeps_its_full_label_visible(self):
