@@ -1,4 +1,5 @@
 import { exportWorks } from "./core/export.js";
+import { datasetFilterOptions, filterDatasets } from "./core/dataset-utils.js";
 import { federatedSearch } from "./core/federated-search.js";
 import { summarizeAuthors as summarizeAuthorRecords, worksForAuthor } from "./core/author-utils.js";
 import { formatNumber, getLanguage, pluralMessage, setLanguage, t } from "./core/i18n.js";
@@ -8,7 +9,7 @@ import { deduplicateWorks, normalizeDoi, safeExternalUrl, workKey } from "./core
 
 const FAVORITES_KEY = "nidara:favorites:v1";
 const MAX_FAVORITES = 250;
-const DEFAULT_SOURCES = ["openalex", "crossref"];
+const DEFAULT_SOURCES = ["openalex", "crossref", "datacite"];
 const form = document.querySelector("#search-form");
 const queryInput = document.querySelector("#query");
 const periodInput = document.querySelector("#period-range");
@@ -19,6 +20,13 @@ const yearToInput = document.querySelector("#year-to");
 const sortSelect = document.querySelector("#sort");
 const publicationTypeSelect = document.querySelector("#publication-type");
 const publicationTypeField = document.querySelector("#publication-type-field");
+const datasetFiltersPanel = document.querySelector("#dataset-filters");
+const datasetRepository = document.querySelector("#dataset-repository");
+const datasetFormat = document.querySelector("#dataset-format");
+const datasetRelatedOnly = document.querySelector("#dataset-related-only");
+const datasetLocation = document.querySelector("#dataset-location");
+const datasetFiltersClear = document.querySelector("#dataset-filters-clear");
+const datasetDownloadSort = document.querySelector("#dataset-download-sort");
 const list = document.querySelector("#results-list");
 const status = document.querySelector("#status");
 const title = document.querySelector("#results-title");
@@ -191,7 +199,7 @@ function summarizeAuthors(works) {
   return summarizeAuthorRecords(works, getLanguage());
 }
 
-function updateViewControls(publications, authors) {
+function updateViewControls(publications, authors, datasets) {
   for (const view of Object.keys(viewCounts)) {
     viewCounts[view].textContent = formatNumber(viewResultCounts[view] ?? 0);
   }
@@ -211,8 +219,56 @@ function updateViewControls(publications, authors) {
     count: formatNumber(publications.length)
   });
   publicationTypeField.hidden = activeView === "datasets";
+  datasetFiltersPanel.hidden = activeView !== "datasets" || !activeFilters || !datasets.length;
+  updateDatasetFilterControls(datasets);
+  datasetDownloadSort.hidden = activeView !== "datasets";
+  datasetDownloadSort.disabled = activeView !== "datasets";
   const loadMoreLabel = more.querySelector("[data-i18n]");
   if (loadMoreLabel) loadMoreLabel.textContent = t(activeView === "authors" ? "loadMoreAuthors" : "loadMore");
+}
+
+function updateDatasetFilterControls(datasets) {
+  const options = datasetFilterOptions(datasets);
+  setDatasetFilterOptions(datasetRepository, options.repositories, "datasetAllRepositories");
+  setDatasetFilterOptions(datasetFormat, options.formats, "datasetAllFormats");
+  datasetFiltersClear.disabled = !datasetFiltersActive();
+}
+
+function setDatasetFilterOptions(select, values, allKey) {
+  const selected = select.value;
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = t(allKey);
+  select.replaceChildren(placeholder);
+  for (const value of values) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.append(option);
+  }
+  select.disabled = values.length === 0;
+  select.value = values.includes(selected) ? selected : "";
+}
+
+function currentDatasetFilters() {
+  return {
+    repository: datasetRepository.value,
+    format: datasetFormat.value,
+    hasRelated: datasetRelatedOnly.checked,
+    location: datasetLocation.value
+  };
+}
+
+function datasetFiltersActive() {
+  const filters = currentDatasetFilters();
+  return Boolean(filters.repository || filters.format || filters.hasRelated || filters.location.trim());
+}
+
+function resetDatasetFilters() {
+  datasetRepository.value = "";
+  datasetFormat.value = "";
+  datasetRelatedOnly.checked = false;
+  datasetLocation.value = "";
 }
 
 function updateResultCounts(queryType, works) {
@@ -269,7 +325,9 @@ function renderAuthors(authors) {
 
 function visibleWorks(works) {
   const matchingType = activeView === "datasets" ? datasetItems(works) : publicationItems(works);
-  return activeView === "authors"
+  return activeView === "datasets"
+    ? filterDatasets(matchingType, currentDatasetFilters())
+    : activeView === "authors"
     ? []
     : selectedAuthor
       ? matchingType.filter(work => (work.authors || []).some(name => authorKey(name) === authorKey(selectedAuthor)))
@@ -286,9 +344,10 @@ function renderCurrentItems() {
   const items = loadedItems;
   const publications = publicationItems(items);
   const authors = summarizeAuthors(publications);
-  const works = visibleWorks(items);
+  const datasets = datasetItems(items);
   list.replaceChildren();
-  updateViewControls(publications, authors);
+  updateViewControls(publications, authors, datasets);
+  const works = visibleWorks(items);
   authorsMore.hidden = true;
 
   if (activeView === "authors") {
@@ -296,8 +355,10 @@ function renderCurrentItems() {
       renderEmpty("authorsEmptyTitle", "resultsEmptyText");
     }
   } else if (!works.length) {
-    const emptyTitle = activeFilters && activeView === "datasets" ? "datasetsEmptyTitle" : "resultsEmptyTitle";
-    renderEmpty(emptyTitle, "resultsEmptyText");
+    const filteredDatasets = activeFilters && activeView === "datasets" && datasetFiltersActive();
+    const emptyTitle = filteredDatasets ? "datasetFiltersEmptyTitle" : activeFilters && activeView === "datasets" ? "datasetsEmptyTitle" : "resultsEmptyTitle";
+    const emptyText = filteredDatasets ? "datasetFiltersEmptyText" : "resultsEmptyText";
+    renderEmpty(emptyTitle, emptyText);
   } else {
     const fragment = document.createDocumentFragment();
     for (const work of works) fragment.append(resultCard(work));
@@ -314,6 +375,8 @@ function renderCurrentItems() {
       ? t("authorWorksCount", { name: selectedAuthor, count: formatNumber(works.length) })
       : activeView === "authors"
         ? t("authorResultsCount", { authors: formatNumber(authors.length), records: formatNumber(publications.length) })
+        : activeView === "datasets" && datasetFiltersActive()
+          ? t("datasetFilteredCount", { shown: formatNumber(works.length), loaded: formatNumber(datasets.length) })
         : works.length
           ? Number.isFinite(total)
             ? t("loadedCount", { loaded: formatNumber(works.length), total: formatNumber(total) })
@@ -338,6 +401,7 @@ function typeLabel(type) {
 }
 
 function resultCard(work) {
+  if (String(work.type || "").toLowerCase() === "dataset") return datasetCard(work);
   const article = element("article", "result");
   const badges = element("div", "result-badges");
   badges.append(element("span", "type-tag", typeLabel(work.type)));
@@ -403,6 +467,202 @@ function resultCard(work) {
   actions.append(save);
   article.append(actions);
   return article;
+}
+
+function datasetCard(work) {
+  const metadata = work.datasetMetadata || {};
+  const article = element("article", "result dataset-card");
+  const badges = element("div", "result-badges");
+  badges.append(element("span", "type-tag", t("typeDataset")));
+  if (metadata.resourceType) badges.append(element("span", "type-tag dataset-resource-type", metadata.resourceType));
+  if (work.openAccess === true) badges.append(element("span", "oa-tag", t("datasetOpenLicense")));
+  else if (work.openAccess === false) badges.append(element("span", "oa-tag dataset-restricted", t("datasetRestrictedLicense")));
+  else badges.append(element("span", "type-tag", metadata.licenses?.length ? t("datasetLicenseOther") : t("datasetLicenseUnknown")));
+  article.append(badges);
+
+  const heading = element("h3");
+  const title = work.title || t("untitled");
+  const landingPage = metadata.landingPage || work.url || (normalizeDoi(work.doi) ? "https://doi.org/" + normalizeDoi(work.doi) : "");
+  const link = externalLink(landingPage, title);
+  heading.append(link);
+  article.append(heading);
+
+  const summary = [metadata.publisher || work.journal, work.year || t("noYear")];
+  if (Number.isFinite(work.citations)) summary.push(pluralMessage("citationCount", work.citations));
+  article.append(element("p", "meta dataset-summary", summary.filter(Boolean).join(" · ") || t("noVenue")));
+  if (safeExternalUrl(metadata.landingPage)) {
+    const recordLink = element("p", "dataset-record-link");
+    recordLink.append(externalLink(metadata.landingPage, t("datasetOpenRepository")));
+    article.append(recordLink);
+  }
+
+  const creators = metadata.creators?.length ? metadata.creators : (work.authors || []).map(name => ({ name, affiliations: [] }));
+  if (creators.length) {
+    const creatorSection = element("section", "dataset-section dataset-creators");
+    creatorSection.append(element("h4", null, t("datasetCreators")));
+    const creatorList = document.createElement("ul");
+    for (const creator of creators.slice(0, 8)) {
+      const item = document.createElement("li");
+      item.append(externalLink(creator.orcid, creator.name));
+      if (creator.affiliations?.length) item.append(element("span", "dataset-affiliation", creator.affiliations.join(" · ")));
+      creatorList.append(item);
+    }
+    creatorSection.append(creatorList);
+    article.append(creatorSection);
+  }
+
+  const description = metadata.description || work.abstract || "";
+  if (description) {
+    const descriptionSection = element("section", "dataset-section dataset-description");
+    descriptionSection.append(element("h4", null, t("datasetDescription")));
+    if (description.length > 520) {
+      descriptionSection.append(element("p", null, description.slice(0, 520).trimEnd() + "…"));
+      const expanded = document.createElement("details");
+      expanded.append(element("summary", null, t("datasetShowDescription")), element("p", null, description));
+      descriptionSection.append(expanded);
+    } else {
+      descriptionSection.append(element("p", null, description));
+    }
+    article.append(descriptionSection);
+  }
+
+  const facts = document.createElement("dl");
+  facts.className = "dataset-facts";
+  appendDatasetFact(facts, "datasetRepository", metadata.publisher || work.journal);
+  appendDatasetLicenseFact(facts, metadata.licenses || [], work.openAccess);
+  appendDatasetFact(facts, "datasetVersion", metadata.version);
+  appendDatasetFact(facts, "datasetFormats", metadata.formats?.join(" · "));
+  appendDatasetFact(facts, "datasetSizes", metadata.sizes?.join(" · "));
+  appendDatasetFact(facts, "datasetCollectionPeriod", metadata.periods?.join(" · "));
+  appendDatasetFact(facts, "datasetUpdated", formatDatasetDate(metadata.updated));
+  if (facts.childElementCount) article.append(facts);
+
+  if (metadata.subjects?.length) article.append(datasetTagSection("datasetSubjects", metadata.subjects));
+  if (metadata.locations?.length) article.append(datasetTagSection("datasetCoverage", metadata.locations));
+  if (metadata.funding?.length) {
+    const funding = metadata.funding.map(entry => [entry.funder, entry.award && `${t("datasetAward")} ${entry.award}`, entry.title].filter(Boolean).join(" · ")).filter(Boolean);
+    if (funding.length) article.append(datasetTagSection("datasetFunding", funding));
+  }
+  if (metadata.related?.length) {
+    const relatedSection = element("section", "dataset-section dataset-related");
+    relatedSection.append(element("h4", null, t("datasetRelated")));
+    const relatedList = document.createElement("ul");
+    for (const record of metadata.related.slice(0, 5)) {
+      const item = document.createElement("li");
+      item.append(externalLink(record.url, record.title || record.url || t("datasetRelatedRecord")));
+      if (record.relation) item.append(element("span", "dataset-relation", relationLabel(record.relation)));
+      relatedList.append(item);
+    }
+    relatedSection.append(relatedList);
+    article.append(relatedSection);
+  }
+
+  if (metadata.accessUrls?.length) {
+    const files = element("div", "dataset-files");
+    for (const [index, url] of metadata.accessUrls.slice(0, 6).entries()) {
+      files.append(externalLink(url, t("datasetOpenFile", { number: formatNumber(index + 1) })));
+    }
+    article.append(files);
+  }
+
+  const usage = [];
+  if (Number.isFinite(work.downloads)) usage.push(t("datasetDownloads", { count: formatNumber(work.downloads) }));
+  if (Number.isFinite(work.views)) usage.push(t("datasetViews", { count: formatNumber(work.views) }));
+  if (usage.length) article.append(element("p", "dataset-usage", usage.join(" · ")));
+
+  const gaps = [];
+  if (!description) gaps.push(t("datasetFieldDescription"));
+  if (!metadata.licenses?.length) gaps.push(t("datasetFieldLicense"));
+  if (!metadata.formats?.length) gaps.push(t("datasetFieldFormat"));
+  if (gaps.length) article.append(element("p", "dataset-gaps", t("datasetMetadataGaps", { fields: gaps.join(", ") })));
+
+  const doi = normalizeDoi(work.doi);
+  if (doi) {
+    const doiLine = element("p", "doi-line");
+    doiLine.append(externalLink("https://doi.org/" + doi, "DOI: " + doi));
+    article.append(doiLine);
+  }
+
+  const key = workKey(work);
+  const saved = favorites.has(key);
+  const save = element("button", "save-button", saved ? t("inCart") : t("addToCart"));
+  save.type = "button";
+  save.setAttribute("aria-pressed", String(saved));
+  save.setAttribute("aria-label", t(saved ? "removeFromCart" : "addToCartLabel", { title }));
+  save.addEventListener("click", () => {
+    toggleFavorite(work);
+    const isSaved = favorites.has(key);
+    save.textContent = isSaved ? t("inCart") : t("addToCart");
+    save.setAttribute("aria-pressed", String(isSaved));
+    save.setAttribute("aria-label", t(isSaved ? "removeFromCart" : "addToCartLabel", { title }));
+  });
+  const actions = element("div", "result-actions");
+  actions.append(save);
+  article.append(actions);
+  return article;
+}
+
+function externalLink(url, label) {
+  const safeUrl = safeExternalUrl(url);
+  if (!safeUrl) return element("span", null, label);
+  const link = element("a", null, label);
+  link.href = safeUrl;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  return link;
+}
+
+function appendDatasetFact(list, labelKey, value) {
+  if (!value) return;
+  const fact = document.createElement("div");
+  fact.className = "dataset-fact";
+  fact.append(element("dt", null, t(labelKey)), element("dd", null, value));
+  list.append(fact);
+}
+
+function appendDatasetLicenseFact(list, licenses, status) {
+  const fact = document.createElement("div");
+  fact.className = "dataset-fact";
+  fact.append(element("dt", null, t("datasetLicense")));
+  const value = document.createElement("dd");
+  if (!licenses.length) {
+    value.textContent = t("datasetNoLicense");
+  } else {
+    for (const [index, license] of licenses.slice(0, 3).entries()) {
+      if (index) value.append(document.createTextNode(" · "));
+      value.append(externalLink(license.url, license.label || license.identifier || t("datasetLicenseTerms")));
+    }
+    if (status === true) value.append(element("span", "dataset-license-status", t("datasetOpenLicense")));
+  }
+  fact.append(value);
+  list.append(fact);
+}
+
+function datasetTagSection(labelKey, values) {
+  const section = element("section", "dataset-section dataset-tag-section");
+  section.append(element("h4", null, t(labelKey)));
+  const tags = document.createElement("ul");
+  for (const value of values.slice(0, 10)) tags.append(element("li", null, value));
+  section.append(tags);
+  return section;
+}
+
+function formatDatasetDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(getLanguage(), { dateStyle: "medium", timeZone: "UTC" }).format(date);
+}
+
+function relationLabel(relation) {
+  const translations = {
+    iscitedby: "datasetRelationCitedBy",
+    isreferencedby: "datasetRelationReferencedBy",
+    cites: "datasetRelationCites",
+    references: "datasetRelationReferences",
+    issupplementto: "datasetRelationSupplementTo",
+    issupplementedby: "datasetRelationSupplementedBy"
+  };
+  return t(translations[String(relation || "").toLowerCase()] || "datasetRelatedRelation", { relation });
 }
 
 function openAuthorDialog(author, trigger) {
@@ -587,6 +847,7 @@ function resultStatus(result, append) {
 function selectView(view) {
   if (!["publications", "authors", "datasets"].includes(view) || activeView === view) return;
   const previousType = activeView === "datasets";
+  if (view !== "datasets" && sortSelect.value === "downloads") sortSelect.value = "relevance";
   activeView = view;
   selectedAuthor = "";
   showAllAuthors = false;
@@ -659,6 +920,8 @@ form.addEventListener("submit", event => {
   if (!filters) return;
   selectedAuthor = "";
   showAllAuthors = false;
+  const datasetScopeChanged = !activeFilters || ["query", "fromDate", "toDate", "openAccessOnly"].some(key => activeFilters[key] !== filters[key]);
+  if (datasetScopeChanged) resetDatasetFilters();
   activeFilters = filters;
   viewResultCounts = { publications: null, authors: null, datasets: null };
   updateShareUrl(filters);
@@ -686,6 +949,14 @@ for (const tab of viewTabs) {
 }
 sortSelect.addEventListener("change", () => {
   if (activeFilters) form.requestSubmit();
+});
+datasetRepository.addEventListener("change", renderCurrentItems);
+datasetFormat.addEventListener("change", renderCurrentItems);
+datasetRelatedOnly.addEventListener("change", renderCurrentItems);
+datasetLocation.addEventListener("input", renderCurrentItems);
+datasetFiltersClear.addEventListener("click", () => {
+  resetDatasetFilters();
+  renderCurrentItems();
 });
 publicationTypeSelect.addEventListener("change", () => {
   if (activeFilters) form.requestSubmit();
