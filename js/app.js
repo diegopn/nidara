@@ -11,6 +11,8 @@ const queryInput = document.querySelector("#query");
 const yearFromInput = document.querySelector("#year-from");
 const yearToInput = document.querySelector("#year-to");
 const sortSelect = document.querySelector("#sort");
+const listingToolbar = document.querySelector("#listing-toolbar");
+const referenceListTools = document.querySelector("#reference-list-tools");
 const list = document.querySelector("#results-list");
 const status = document.querySelector("#status");
 const title = document.querySelector("#results-title");
@@ -154,6 +156,8 @@ function updateViewControls(works, publications, authors) {
   viewCounts.authors.textContent = formatNumber(authors.length);
   viewCounts.datasets.textContent = formatNumber(datasets.length);
   resultTabs.hidden = savedView;
+  listingToolbar.hidden = savedView;
+  referenceListTools.hidden = !savedView;
   for (const tab of viewTabs) {
     const selected = tab.dataset.view === activeView;
     tab.setAttribute("aria-selected", String(selected));
@@ -314,7 +318,6 @@ function resultCard(work) {
   save.setAttribute("aria-pressed", String(saved));
   save.setAttribute("aria-label", t(saved ? "removeFromCart" : "addToCartLabel", { title: workTitle }));
   save.addEventListener("click", () => toggleFavorite(work));
-  headingRow.append(save);
   article.append(headingRow);
 
   const details = [
@@ -336,14 +339,15 @@ function resultCard(work) {
     article.append(doiLine);
   }
 
-  if (work.abstract) article.append(element("p", "abstract", work.abstract));
   const missing = [];
   if (!(work.authors || []).length) missing.push(t("fieldAuthors"));
   if (!work.year) missing.push(t("fieldYear"));
-  if (!work.abstract) missing.push(t("fieldAbstract"));
   if (!doi) missing.push(t("fieldDoi"));
   if (work.openAccess == null) missing.push(t("fieldOpenAccess"));
   if (missing.length) article.append(element("p", "missing", t("missingMetadata", { fields: missing.join(", ") })));
+  const actions = element("div", "result-actions");
+  actions.append(save);
+  article.append(actions);
   return article;
 }
 

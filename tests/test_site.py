@@ -92,32 +92,37 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('data-view="datasets"', self.html)
         self.assertIn('data-i18n="authorScope"', self.html)
 
-    def test_export_action_is_prominent_next_to_the_result_listing(self):
-        listing_toolbar = re.search(r'<div class="listing-toolbar">([\s\S]*?)<p id="view-note"', self.html)
+    def test_export_action_is_available_inside_the_reference_list(self):
+        listing_toolbar = re.search(r'<div class="listing-toolbar" id="listing-toolbar">([\s\S]*?)</div>\s*<p id="view-note"', self.html)
         self.assertIsNotNone(listing_toolbar)
         toolbar = listing_toolbar.group(1)
         self.assertIn('id="sort"', toolbar)
-        self.assertIn('id="export-button"', toolbar)
-        self.assertLess(toolbar.index('id="sort"'), toolbar.index('id="export-button"'))
-        self.assertIn('class="listing-export"', toolbar)
-        self.assertIn('class="export-button"', toolbar)
+        self.assertNotIn('id="export-button"', toolbar)
+        self.assertNotIn('class="listing-export"', toolbar)
+        reference_tools = re.search(r'<div class="reference-list-toolbar" id="reference-list-tools" hidden>([\s\S]*?)</div>', self.html)
+        self.assertIsNotNone(reference_tools)
+        self.assertIn('id="export-button"', reference_tools.group(1))
+        self.assertIn('class="export-button"', reference_tools.group(1))
+        self.assertLess(self.html.index('id="view-note"'), self.html.index('id="reference-list-tools"'))
 
         messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
         self.assertEqual({locale: values["exportSelected"] for locale, values in messages.items()}, {
-            "pt-BR": "Exportar seleção",
-            "en": "Export selection",
-            "es": "Exportar selección",
+            "pt-BR": "Exportar lista",
+            "en": "Export list",
+            "es": "Exportar lista",
         })
 
-    def test_selection_cart_exports_the_entire_selected_set(self):
+    def test_reference_list_uses_a_bookmark_and_exports_the_entire_selection(self):
         self.assertIn('data-i18n="selectionCart"', self.html)
         self.assertIn('id="saved-toggle"', self.html)
         self.assertIn('id="saved-count"', self.html)
+        self.assertIn('class="bookmark-icon"', self.html)
         self.assertIn('data-i18n="exportSelected"', self.html)
         self.assertIn('id="export-count"', self.html)
         self.assertRegex(self.app, r'exportButton\.disabled\s*=\s*favorites\.size\s*===\s*0')
         self.assertIn('activeView = "selection"', self.app)
         self.assertIn("resultTabs.hidden = savedView", self.app)
+        self.assertIn("referenceListTools.hidden = !savedView", self.app)
         self.assertRegex(self.app, r'activeView === "selection"\s*\?\s*works')
         self.assertRegex(
             self.app,
@@ -127,15 +132,40 @@ class SiteIntegrityTests(unittest.TestCase):
 
         messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
         self.assertEqual({locale: values["selectionCart"] for locale, values in messages.items()}, {
-            "pt-BR": "Cesta",
-            "en": "Selection",
-            "es": "Selección",
+            "pt-BR": "Lista de referências",
+            "en": "Reference list",
+            "es": "Lista de referencias",
         })
 
-    def test_mobile_export_format_keeps_its_full_label_visible(self):
+    def test_result_cards_are_compact_and_add_references_at_the_bottom(self):
+        card = re.search(r"function resultCard\(work\) \{([\s\S]*?)\n\}\n\nfunction toggleFavorite", self.app)
+        self.assertIsNotNone(card)
+        self.assertNotIn("work.abstract", card.group(1))
+        self.assertNotIn('t("fieldAbstract")', card.group(1))
+        self.assertNotIn("headingRow.append(save)", card.group(1))
+        self.assertIn("actions.append(save)", card.group(1))
+        self.assertGreater(card.group(1).index("article.append(actions)"), card.group(1).index("actions.append(save)"))
+
+        messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
+        self.assertEqual({locale: values["addToCart"] for locale, values in messages.items()}, {
+            "pt-BR": "Adicionar referência à lista",
+            "en": "Add reference to list",
+            "es": "Añadir referencia a la lista",
+        })
+
+    def test_h1_and_h2_use_semibold_weight(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        heading_rule = re.search(r"h1, h2\s*\{([^}]*)\}", css)
+        self.assertIsNotNone(heading_rule)
+        self.assertRegex(heading_rule.group(1), r"font-weight:\s*600")
+        hero_heading = re.search(r"\.hero h1\s*\{([^}]*)\}", css)
+        self.assertIsNotNone(hero_heading)
+        self.assertRegex(hero_heading.group(1), r"font-weight:\s*600")
+
+    def test_mobile_reference_list_export_format_keeps_its_full_label_visible(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
         mobile = css.split("@media (max-width: 760px)", 1)[1].split("@media (max-width: 390px)", 1)[0]
-        format_control = re.search(r"\.listing-toolbar #export-format\s*\{([^}]*)\}", mobile)
+        format_control = re.search(r"\.reference-list-toolbar #export-format\s*\{([^}]*)\}", mobile)
         self.assertIsNotNone(format_control)
         self.assertRegex(format_control.group(1), r"min-width:\s*88px")
 

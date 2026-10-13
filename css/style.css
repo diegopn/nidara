@@ -60,7 +60,7 @@ button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .56; }
 h1, h2, h3, p { margin-top: 0; }
-h1, h2 { font-family: var(--serif); font-weight: 400; }
+h1, h2 { font-family: var(--serif); font-weight: 600; }
 h3 { font-family: var(--sans); }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .content-width { width: min(var(--max), calc(100% - 72px)); margin-inline: auto; }
@@ -112,7 +112,7 @@ h3 { font-family: var(--sans); }
 .hero-inner { padding-block: 38px 14px; }
 .eyebrow { display: flex; align-items: center; gap: 10px; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .eyebrow::before { width: 26px; height: 2px; background: var(--accent); content: ""; }
-.hero h1 { max-width: 780px; margin: 13px 0 10px; font-family: var(--serif); font-size: clamp(2.5rem, 5.2vw, 4.25rem); font-weight: 400; line-height: 1.04; letter-spacing: -.02em; }
+.hero h1 { max-width: 780px; margin: 13px 0 10px; font-family: var(--serif); font-size: clamp(2.5rem, 5.2vw, 4.25rem); font-weight: 600; line-height: 1.04; letter-spacing: -.02em; }
 .lead { max-width: 800px; margin-bottom: 0; color: var(--body-copy); font-size: 14px; }
 .search-area { padding: 12px 0 32px; background: transparent; }
 #search-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; padding: 18px 20px 16px; border: 1px solid var(--line); background: var(--page-surface); }
@@ -147,10 +147,9 @@ h3 { font-family: var(--sans); }
 .listing-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 9px 0 7px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .listing-toolbar .filter-field { display: flex; align-items: center; gap: 10px; }
 .listing-toolbar #sort { min-width: 180px; }
-.listing-toolbar #export-format { min-width: 0; width: 96px; }
-.listing-export { display: flex; align-items: center; gap: 6px; padding: 4px; border: 1px solid var(--line); background: var(--research-surface); }
-.listing-export .export-choice { color: var(--ink); font-size: 11px; }
-.listing-export .export-choice select { min-height: 40px; padding: 6px 10px; font-size: 11px; }
+.reference-list-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 14px 0 12px; padding: 12px 14px; border: 1px solid var(--line); background: var(--research-surface); }
+.reference-list-toolbar .export-choice { color: var(--ink); font-size: 11px; }
+.reference-list-toolbar .export-choice select { min-height: 40px; padding: 6px 10px; font-size: 11px; }
 .export-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 8px 13px; border: 1px solid var(--button-bg); border-radius: 0; color: var(--button-text); background: var(--button-bg); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .export-button:not(:disabled):hover { background: var(--button-hover); }
 .export-count { display: inline-grid; min-width: 20px; min-height: 20px; padding-inline: 3px; place-items: center; border: 1px solid currentColor; font-size: 10px; }
@@ -186,11 +185,11 @@ h2 { margin: 4px 0 0; font-size: clamp(2rem, 3.4vw, 2.8rem); line-height: 1.05; 
 .source-tag, .oa-tag, .type-tag { display: inline-flex; align-items: center; min-height: 20px; padding: 2px 7px; border: 1px solid var(--line); color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .oa-tag { border-color: var(--ink); color: var(--ink); }
 .result .meta { margin: 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
-.result .abstract { max-width: 970px; margin: 9px 0 0; color: var(--body-copy); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 .missing { margin: 8px 0 0; color: var(--muted); font-size: 10px; }
 .doi-line { margin: 8px 0 0; font-size: 10px; }
 .doi-line a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
-.save-button { flex: 0 0 auto; min-height: 34px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 0; color: var(--ink); background: var(--page-surface); font-size: 10px; font-weight: 700; }
+.result-actions { display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.save-button { flex: 0 0 auto; min-height: 40px; padding: 7px 12px; border: 1px solid var(--accent); border-radius: 0; color: var(--accent); background: var(--page-surface); font-size: 11px; font-weight: 700; }
 .save-button:hover, .save-button[aria-pressed="true"] { border-color: var(--accent); background: var(--research-surface); }
 .author-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 245px), 1fr)); gap: 10px; }
 .author-card { display: flex; min-width: 0; flex-direction: column; align-items: start; padding: 15px 16px; border: 1px solid var(--line); background: var(--page-surface); }
@@ -245,10 +244,10 @@ footer { border-top: 1px solid var(--line); }
   .listing-toolbar { align-items: stretch; flex-direction: column; gap: 12px; }
   .listing-toolbar .filter-field { width: 100%; justify-content: space-between; }
   .listing-toolbar #sort { min-width: 0; width: min(58%, 220px); }
-  .listing-toolbar #export-format { min-width: 88px; width: 88px; }
-  .listing-export { width: auto; justify-content: space-between; }
-  .export-choice { flex: 1; justify-content: space-between; }
-  .export-choice select { width: min(34%, 100px); }
+  .reference-list-toolbar { align-items: stretch; justify-content: space-between; gap: 8px; padding: 10px; }
+  .reference-list-toolbar .export-choice { flex: 1; justify-content: space-between; }
+  .reference-list-toolbar #export-format { min-width: 88px; width: 88px; }
+  .reference-list-toolbar .export-choice select { width: min(34%, 100px); }
   .export-button { flex: 1; }
   .result-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
   .result-tab { justify-content: center; gap: 5px; min-height: 44px; padding: 6px 4px; font-size: 10px; }
@@ -256,7 +255,7 @@ footer { border-top: 1px solid var(--line); }
   .result { padding: 14px 12px; }
   .result-heading-row { gap: 9px; }
   .result h3 { font-size: 15px; }
-  .save-button { max-width: 100px; white-space: normal; }
+  .result-actions .save-button { width: 100%; white-space: normal; }
   .author-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .author-card { padding: 12px 10px; }
   .author-card h3 { font-size: 12px; }
