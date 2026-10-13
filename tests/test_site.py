@@ -92,18 +92,21 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('data-view="datasets"', self.html)
         self.assertIn('data-i18n="authorScope"', self.html)
 
-    def test_export_action_is_available_inside_the_reference_list(self):
+    def test_reference_dialog_contains_list_and_export_controls(self):
         listing_toolbar = re.search(r'<div class="listing-toolbar" id="listing-toolbar">([\s\S]*?)</div>\s*<p id="view-note"', self.html)
         self.assertIsNotNone(listing_toolbar)
         toolbar = listing_toolbar.group(1)
         self.assertIn('id="sort"', toolbar)
         self.assertNotIn('id="export-button"', toolbar)
         self.assertNotIn('class="listing-export"', toolbar)
-        reference_tools = re.search(r'<div class="reference-list-toolbar" id="reference-list-tools" hidden>([\s\S]*?)</div>', self.html)
-        self.assertIsNotNone(reference_tools)
-        self.assertIn('id="export-button"', reference_tools.group(1))
-        self.assertIn('class="export-button"', reference_tools.group(1))
-        self.assertLess(self.html.index('id="view-note"'), self.html.index('id="reference-list-tools"'))
+        dialog = re.search(r'<dialog\b(?=[^>]*id="references-dialog")([\s\S]*?)</dialog>', self.html)
+        self.assertIsNotNone(dialog, "The saved-reference control must open a native modal dialog")
+        self.assertIn('id="references-dialog-title"', dialog.group(1))
+        self.assertIn('id="references-list"', dialog.group(1))
+        self.assertIn('id="references-empty"', dialog.group(1))
+        self.assertIn('id="export-button"', dialog.group(1))
+        self.assertIn('class="export-button"', dialog.group(1))
+        self.assertNotIn('id="reference-list-tools"', self.html)
 
         messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
         self.assertEqual({locale: values["exportSelected"] for locale, values in messages.items()}, {
@@ -117,18 +120,25 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('id="saved-toggle"', self.html)
         self.assertIn('id="saved-count"', self.html)
         self.assertIn('class="bookmark-icon"', self.html)
+        self.assertIn('aria-haspopup="dialog"', self.html)
+        self.assertIn('aria-controls="references-dialog"', self.html)
         self.assertIn('data-i18n="exportSelected"', self.html)
         self.assertIn('id="export-count"', self.html)
         self.assertRegex(self.app, r'exportButton\.disabled\s*=\s*favorites\.size\s*===\s*0')
-        self.assertIn('activeView = "selection"', self.app)
-        self.assertIn("resultTabs.hidden = savedView", self.app)
-        self.assertIn("referenceListTools.hidden = !savedView", self.app)
-        self.assertRegex(self.app, r'activeView === "selection"\s*\?\s*works')
+        self.assertIn("referencesDialog.showModal()", self.app)
+        self.assertIn("renderSavedReferences()", self.app)
         self.assertRegex(
             self.app,
             r'exportWorks\(\[\.\.\.favorites\.values\(\)\],\s*exportFormat\.value',
         )
         self.assertNotRegex(self.app, r'exportWorks\(visibleWorks\(')
+        self.assertIn('localStorage.setItem(FAVORITES_KEY', self.app)
+        self.assertNotIn("favorites.clear()", self.app)
+
+        submit_handler = re.search(r'form\.addEventListener\("submit", event => \{([\s\S]*?)\n\}\);', self.app)
+        self.assertIsNotNone(submit_handler)
+        self.assertNotIn("favorites =", submit_handler.group(1))
+        self.assertNotIn("persistFavorites", submit_handler.group(1))
 
         messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
         self.assertEqual({locale: values["selectionCart"] for locale, values in messages.items()}, {
@@ -163,10 +173,10 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIsNotNone(hero_heading)
         self.assertRegex(hero_heading.group(1), r"font-weight:\s*600")
 
-    def test_mobile_reference_list_export_format_keeps_its_full_label_visible(self):
+    def test_mobile_reference_dialog_export_format_keeps_its_full_label_visible(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
         mobile = css.split("@media (max-width: 760px)", 1)[1].split("@media (max-width: 390px)", 1)[0]
-        format_control = re.search(r"\.reference-list-toolbar #export-format\s*\{([^}]*)\}", mobile)
+        format_control = re.search(r"\.references-dialog #export-format\s*\{([^}]*)\}", mobile)
         self.assertIsNotNone(format_control)
         self.assertRegex(format_control.group(1), r"min-width:\s*88px")
 
@@ -299,7 +309,10 @@ class SiteIntegrityTests(unittest.TestCase):
 
     def test_author_and_saved_counts_match_the_visible_scope(self):
         self.assertRegex(self.app, r'selectedAuthor\s*\?\s*t\("authorWorksCount"')
-        self.assertIn('pluralMessage("savedCount", items.length)', self.app)
+        saved_references = re.search(r"function renderSavedReferences\(\) \{([\s\S]*?)\n\}", self.app)
+        self.assertIsNotNone(saved_references)
+        self.assertIn('pluralMessage("savedCount", works.length)', saved_references.group(1))
+        self.assertIn('[...favorites.values()]', saved_references.group(1))
 
     def test_locale_routes_keep_canonical_language_and_resolve_assets(self):
         for locale in ("en", "es"):

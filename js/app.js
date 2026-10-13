@@ -12,7 +12,6 @@ const yearFromInput = document.querySelector("#year-from");
 const yearToInput = document.querySelector("#year-to");
 const sortSelect = document.querySelector("#sort");
 const listingToolbar = document.querySelector("#listing-toolbar");
-const referenceListTools = document.querySelector("#reference-list-tools");
 const list = document.querySelector("#results-list");
 const status = document.querySelector("#status");
 const title = document.querySelector("#results-title");
@@ -21,6 +20,11 @@ const more = document.querySelector("#more");
 const searchButton = document.querySelector("#search-button");
 const savedToggle = document.querySelector("#saved-toggle");
 const savedCount = document.querySelector("#saved-count");
+const referencesDialog = document.querySelector("#references-dialog");
+const referencesDialogClose = document.querySelector("#references-dialog-close");
+const referencesDialogCount = document.querySelector("#references-count");
+const referencesEmpty = document.querySelector("#references-empty");
+const referencesList = document.querySelector("#references-list");
 const exportCount = document.querySelector("#export-count");
 const resultTabs = document.querySelector("#result-tabs");
 const shareButton = document.querySelector("#share-button");
@@ -47,7 +51,6 @@ let favorites = readFavorites();
 let pageNumbers = {};
 let providerProgress = {};
 let providerTotals = {};
-let savedView = false;
 let activeView = "publications";
 let selectedAuthor = "";
 let showAllAuthors = false;
@@ -105,11 +108,54 @@ function persistFavorites(nextFavorites) {
   }
 }
 
+function renderSavedReferences() {
+  const works = [...favorites.values()];
+  exportCount.textContent = String(works.length);
+  exportButton.disabled = works.length === 0;
+  referencesDialogCount.textContent = pluralMessage("savedCount", works.length);
+  referencesEmpty.hidden = works.length > 0;
+  referencesList.hidden = works.length === 0;
+  referencesList.replaceChildren();
+
+  for (const work of works) {
+    const item = element("li", "references-item");
+    const main = element("div", "references-item-main");
+    const heading = element("h3");
+    const workTitle = work.title || t("untitled");
+    const link = element("a", null, workTitle);
+    const externalUrl = safeExternalUrl(work.url) || (normalizeDoi(work.doi) ? "https://doi.org/" + normalizeDoi(work.doi) : "");
+    if (externalUrl) {
+      link.href = externalUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+    }
+    heading.append(link);
+    main.append(heading);
+    const metadata = [
+      (work.authors || []).length ? work.authors.join(", ") : t("noAuthors"),
+      work.year || t("noYear"),
+      work.journal || t("noVenue")
+    ];
+    main.append(element("p", "references-item-meta", metadata.join(" · ")));
+
+    const remove = element("button", "references-remove", t("removeReference"));
+    remove.type = "button";
+    remove.setAttribute("aria-label", t("removeFromCart", { title: workTitle }));
+    remove.addEventListener("click", () => {
+      const index = [...favorites.keys()].indexOf(workKey(work));
+      toggleFavorite(work);
+      const remaining = referencesList.querySelectorAll(".references-remove");
+      (remaining[Math.min(index, remaining.length - 1)] || referencesDialogClose).focus();
+    });
+    item.append(main, remove);
+    referencesList.append(item);
+  }
+}
+
 function refreshSavedCount() {
   savedCount.textContent = String(favorites.size);
-  exportCount.textContent = String(favorites.size);
   savedToggle.setAttribute("aria-label", t("selectionCartCount", { count: formatNumber(favorites.size) }));
-  savedToggle.setAttribute("aria-pressed", String(savedView));
+  renderSavedReferences();
 }
 
 function isDataset(work) {
@@ -155,23 +201,19 @@ function updateViewControls(works, publications, authors) {
   viewCounts.publications.textContent = formatNumber(publications.length);
   viewCounts.authors.textContent = formatNumber(authors.length);
   viewCounts.datasets.textContent = formatNumber(datasets.length);
-  resultTabs.hidden = savedView;
-  listingToolbar.hidden = savedView;
-  referenceListTools.hidden = !savedView;
   for (const tab of viewTabs) {
     const selected = tab.dataset.view === activeView;
     tab.setAttribute("aria-selected", String(selected));
     tab.tabIndex = selected ? 0 : -1;
   }
-  list.setAttribute("aria-labelledby", savedView ? "results-title" : `${activeView}-tab`);
+  list.setAttribute("aria-labelledby", `${activeView}-tab`);
   viewNote.textContent = t({
     publications: "publicationViewNote",
     authors: "authorViewNote",
-    datasets: "datasetViewNote",
-    selection: "selectionViewNote"
+    datasets: "datasetViewNote"
   }[activeView]);
   authorsScope.hidden = activeView !== "authors";
-  authorsScope.textContent = t(savedView ? "authorScopeSaved" : "authorScope", {
+  authorsScope.textContent = t("authorScope", {
     count: formatNumber(publications.length)
   });
   const loadMoreLabel = more.querySelector("[data-i18n]");
@@ -213,9 +255,7 @@ function renderAuthors(authors) {
 }
 
 function visibleWorks(works) {
-  const matchingType = activeView === "selection"
-    ? works
-    : activeView === "datasets" ? datasetItems(works) : publicationItems(works);
+  const matchingType = activeView === "datasets" ? datasetItems(works) : publicationItems(works);
   return activeView === "authors"
     ? []
     : selectedAuthor
@@ -230,8 +270,7 @@ function renderEmpty(titleKey, textKey) {
 }
 
 function renderCurrentItems() {
-  const items = savedView ? [...favorites.values()] : loadedItems;
-  sortSelect.disabled = savedView;
+  const items = loadedItems;
   const publications = publicationItems(items);
   const authors = summarizeAuthors(publications);
   const works = visibleWorks(items);
@@ -241,38 +280,32 @@ function renderCurrentItems() {
 
   if (activeView === "authors") {
     if (!renderAuthors(authors)) {
-      renderEmpty("authorsEmptyTitle", savedView ? "favoritesEmptyText" : "resultsEmptyText");
+      renderEmpty("authorsEmptyTitle", "resultsEmptyText");
     }
   } else if (!works.length) {
-    const emptyTitle = savedView
-      ? "favoritesEmptyTitle"
-      : activeFilters && activeView === "datasets" ? "datasetsEmptyTitle" : "resultsEmptyTitle";
-    renderEmpty(emptyTitle, savedView ? "favoritesEmptyText" : "resultsEmptyText");
+    const emptyTitle = activeFilters && activeView === "datasets" ? "datasetsEmptyTitle" : "resultsEmptyTitle";
+    renderEmpty(emptyTitle, "resultsEmptyText");
   } else {
     const fragment = document.createDocumentFragment();
     for (const work of works) fragment.append(resultCard(work));
     list.append(fragment);
   }
 
-  title.textContent = savedView
-    ? t("favoritesTitle")
-    : selectedAuthor
+  title.textContent = selectedAuthor
       ? t("worksByAuthor", { name: selectedAuthor })
       : !activeFilters
         ? t("initialTitle")
         : t({ publications: "publicationsFor", authors: "authorsFor", datasets: "datasetsFor" }[activeView], { query: activeFilters.query });
-  count.textContent = savedView
-    ? pluralMessage("savedCount", items.length)
-    : selectedAuthor
+  count.textContent = selectedAuthor
       ? t("authorWorksCount", { name: selectedAuthor, count: formatNumber(works.length) })
       : activeView === "authors"
         ? t("authorResultsCount", { authors: formatNumber(authors.length), records: formatNumber(publications.length) })
         : works.length
           ? t("loadedCount", { loaded: formatNumber(works.length), total: formatNumber(totalMatches()) })
           : "";
-  shareButton.disabled = !activeFilters || savedView;
+  shareButton.disabled = !activeFilters;
   exportButton.disabled = favorites.size === 0;
-  more.hidden = savedView || !Object.values(providerProgress).some(progress => progress.hasMore);
+  more.hidden = !Object.values(providerProgress).some(progress => progress.hasMore);
 }
 
 function totalMatches() {
@@ -368,6 +401,13 @@ function toggleFavorite(work) {
   else setStatus(t(removing ? "removedFromCart" : "addedToCart"));
 }
 
+function openReferencesDialog() {
+  renderSavedReferences();
+  referencesDialog.showModal();
+  savedToggle.setAttribute("aria-expanded", "true");
+  referencesDialogClose.focus();
+}
+
 function readFiltersFromForm() {
   const query = queryInput.value.trim();
   const yearFrom = yearFromInput.value.trim();
@@ -457,10 +497,8 @@ function selectView(view) {
   activeView = view;
   selectedAuthor = "";
   showAllAuthors = false;
-  refreshSavedCount();
-  if (!savedView) updateShareUrl(activeFilters);
-  if (savedView) renderCurrentItems();
-  else if (activeFilters && previousType !== (activeView === "datasets")) runSearch();
+  updateShareUrl(activeFilters);
+  if (activeFilters && previousType !== (activeView === "datasets")) runSearch();
   else renderCurrentItems();
 }
 
@@ -538,33 +576,12 @@ async function shareSearch() {
   }
 }
 
-function toggleSavedView() {
-  savedView = !savedView;
-  if (savedView) {
-    activeView = "selection";
-    selectedAuthor = "";
-    showAllAuthors = false;
-  } else if (activeView === "selection") activeView = "publications";
-  if (controller) controller.abort();
-  requestId += 1;
-  list.setAttribute("aria-busy", "false");
-  searchButton.disabled = false;
-  more.disabled = false;
-  refreshSavedCount();
-  renderCurrentItems();
-  if (savedView) title.focus();
-  setStatus(savedView ? t("storageNote") : activeFilters ? t("searchResultsStatus") : t("searchOpenSources"));
-}
-
 form.addEventListener("submit", event => {
   event.preventDefault();
   const filters = readFiltersFromForm();
   if (!filters) return;
-  savedView = false;
-  if (activeView === "selection") activeView = "publications";
   selectedAuthor = "";
   showAllAuthors = false;
-  refreshSavedCount();
   activeFilters = filters;
   updateShareUrl(filters);
   runSearch();
@@ -590,9 +607,14 @@ for (const tab of viewTabs) {
   });
 }
 sortSelect.addEventListener("change", () => {
-  if (activeFilters && !savedView) form.requestSubmit();
+  if (activeFilters) form.requestSubmit();
 });
-savedToggle.addEventListener("click", toggleSavedView);
+savedToggle.addEventListener("click", openReferencesDialog);
+referencesDialogClose.addEventListener("click", () => referencesDialog.close());
+referencesDialog.addEventListener("close", () => {
+  savedToggle.setAttribute("aria-expanded", "false");
+  savedToggle.focus();
+});
 shareButton.addEventListener("click", shareSearch);
 exportButton.addEventListener("click", () => {
   try {

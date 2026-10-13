@@ -99,8 +99,6 @@ h3 { font-family: var(--sans); }
 .saved-toggle span { display: inline-grid; min-width: 20px; min-height: 20px; margin-left: 5px; place-items: center; border: 1px solid var(--line); }
 .saved-toggle .saved-label { display: inline-block; min-width: 0; min-height: 0; margin: 0; border: 0; }
 .saved-toggle #saved-count { margin-left: 0; }
-.saved-toggle[aria-pressed="true"] { color: var(--button-text); border-color: var(--button-bg); background: var(--button-bg); }
-.saved-toggle[aria-pressed="true"] span { border-color: currentColor; }
 .language-switcher { display: flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--research-surface); }
 .language-switcher a { display: grid; min-width: 35px; min-height: 30px; padding-inline: 7px; place-items: center; border-radius: 999px; color: var(--muted); font-size: 10px; font-weight: 800; white-space: nowrap; }
 .language-switcher a:hover { color: var(--ink); background: var(--page-surface); }
@@ -147,9 +145,29 @@ h3 { font-family: var(--sans); }
 .listing-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 9px 0 7px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .listing-toolbar .filter-field { display: flex; align-items: center; gap: 10px; }
 .listing-toolbar #sort { min-width: 180px; }
-.reference-list-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 14px 0 12px; padding: 12px 14px; border: 1px solid var(--line); background: var(--research-surface); }
-.reference-list-toolbar .export-choice { color: var(--ink); font-size: 11px; }
-.reference-list-toolbar .export-choice select { min-height: 40px; padding: 6px 10px; font-size: 11px; }
+.references-dialog { box-sizing: border-box; width: min(760px, calc(100% - 32px)); max-width: none; max-height: min(84vh, 760px); overflow: hidden; padding: 24px; border: 1px solid var(--line); color: var(--ink); background: var(--page-surface); box-shadow: 0 20px 70px rgb(14 24 22 / 28%); }
+.references-dialog[open] { display: flex; flex-direction: column; }
+.references-dialog::backdrop { background: rgb(15 23 27 / 58%); backdrop-filter: blur(2px); }
+.references-dialog-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
+.references-dialog-heading .eyebrow { margin: 0; }
+.references-dialog-heading h2 { margin-top: 5px; font-size: clamp(1.8rem, 4vw, 2.3rem); }
+.references-dialog-close { display: grid; width: 40px; min-height: 40px; flex: 0 0 auto; place-items: center; border: 1px solid var(--line); color: var(--ink); background: var(--page-surface); font-size: 24px; line-height: 1; }
+.references-dialog-description { margin: 14px 0 4px; color: var(--muted); font-size: 12px; }
+.references-dialog-count { flex: 0 0 auto; margin: 0 0 10px; color: var(--muted); font-size: 11px; }
+.references-empty { padding: 24px 18px; border: 1px solid var(--line); background: var(--research-surface); }
+.references-empty h3 { margin: 0 0 5px; font-size: 14px; }
+.references-empty p { margin: 0; color: var(--muted); font-size: 11px; }
+.references-list { display: grid; min-height: 0; flex: 1 1 auto; gap: 8px; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding: 0 4px 0 0; list-style: none; }
+.references-item { display: flex; align-items: start; justify-content: space-between; gap: 16px; padding: 12px 14px; border: 1px solid var(--line); background: var(--page-surface); }
+.references-item-main { min-width: 0; }
+.references-item h3 { margin: 0 0 4px; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.references-item h3 a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.references-item-meta { margin: 0; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.references-remove { min-height: 36px; flex: 0 0 auto; padding: 6px 9px; border: 1px solid var(--line); color: var(--ink); background: var(--page-surface); font-size: 10px; font-weight: 700; }
+.references-remove:hover, .references-dialog-close:hover { background: var(--research-surface); }
+.references-dialog .reference-list-toolbar { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 12px; margin: 14px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line); }
+.references-dialog .export-choice { color: var(--ink); font-size: 11px; }
+.references-dialog .export-choice select { min-height: 40px; padding: 6px 10px; font-size: 11px; }
 .export-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 8px 13px; border: 1px solid var(--button-bg); border-radius: 0; color: var(--button-text); background: var(--button-bg); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .export-button:not(:disabled):hover { background: var(--button-hover); }
 .export-count { display: inline-grid; min-width: 20px; min-height: 20px; padding-inline: 3px; place-items: center; border: 1px solid currentColor; font-size: 10px; }
@@ -244,10 +262,13 @@ footer { border-top: 1px solid var(--line); }
   .listing-toolbar { align-items: stretch; flex-direction: column; gap: 12px; }
   .listing-toolbar .filter-field { width: 100%; justify-content: space-between; }
   .listing-toolbar #sort { min-width: 0; width: min(58%, 220px); }
-  .reference-list-toolbar { align-items: stretch; justify-content: space-between; gap: 8px; padding: 10px; }
-  .reference-list-toolbar .export-choice { flex: 1; justify-content: space-between; }
-  .reference-list-toolbar #export-format { min-width: 88px; width: 88px; }
-  .reference-list-toolbar .export-choice select { width: min(34%, 100px); }
+  .references-dialog { width: calc(100% - 20px); max-height: calc(100dvh - 20px); padding: 18px 14px; }
+  .references-dialog .reference-list-toolbar { align-items: stretch; justify-content: space-between; gap: 8px; }
+  .references-dialog .export-choice { flex: 1; justify-content: space-between; }
+  .references-dialog #export-format { min-width: 88px; width: 88px; }
+  .references-dialog .export-choice select { width: min(34%, 100px); }
+  .references-item { gap: 8px; padding: 10px; }
+  .references-remove { max-width: 108px; white-space: normal; }
   .export-button { flex: 1; }
   .result-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
   .result-tab { justify-content: center; gap: 5px; min-height: 44px; padding: 6px 4px; font-size: 10px; }

@@ -28,7 +28,7 @@
         <a href="./en/" data-locale="en" lang="en" aria-label="English" title="English">EN</a>
         <a href="./es/" data-locale="es" lang="es" aria-label="Español" title="Español">ES</a>
       </nav>
-      <button class="saved-toggle" id="saved-toggle" type="button" aria-label="Abrir lista de referências" data-i18n-aria-label="selectionCartLabel" aria-pressed="false">
+      <button class="saved-toggle" id="saved-toggle" type="button" aria-label="Abrir lista de referências" data-i18n-aria-label="selectionCartLabel" aria-haspopup="dialog" aria-controls="references-dialog" aria-expanded="false">
         <svg class="bookmark-icon" aria-hidden="true" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 3.5h8a1.5 1.5 0 0 1 1.5 1.5v12l-5.5-3.5L4.5 17V5A1.5 1.5 0 0 1 6 3.5Z" />
         </svg>
@@ -95,22 +95,6 @@
           </label>
         </div>
         <p id="view-note" class="view-note" data-i18n="publicationViewNote">Artigos, preprints, livros e capítulos encontrados para sua busca.</p>
-        <div class="reference-list-toolbar" id="reference-list-tools" hidden>
-          <label class="export-choice" for="export-format"><span data-i18n="format">Formato</span>
-            <select id="export-format" aria-label="Formato da exportação" data-i18n-aria-label="exportFormat">
-              <option value="bibtex">BibTeX</option>
-              <option value="ris">RIS</option>
-              <option value="csv">CSV</option>
-            </select>
-          </label>
-          <button id="export-button" class="export-button" type="button" disabled>
-            <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8 2v7m0 0 2.5-2.5M8 9 5.5 6.5M3 10.5V14h10v-3.5" />
-            </svg>
-            <span data-i18n="exportSelected">Exportar lista</span>
-            <span class="export-count" id="export-count">0</span>
-          </button>
-        </div>
         <p class="authors-scope" id="authors-scope" data-i18n="authorScope" hidden></p>
         <p id="status" role="status" aria-live="polite" data-i18n="initialStatus">Busque um assunto. Cada publicação mostra seus autores, sua fonte e seus links.</p>
         <div id="results-list" class="results-list" role="tabpanel" aria-labelledby="publications-tab" aria-busy="false"></div>
@@ -119,6 +103,39 @@
       </div>
     </section>
   </main>
+
+  <dialog class="references-dialog" id="references-dialog" aria-labelledby="references-dialog-title" aria-describedby="references-dialog-description">
+    <div class="references-dialog-heading">
+      <div>
+        <p class="eyebrow" data-i18n="referencesDialogEyebrow">Suas referências</p>
+        <h2 id="references-dialog-title" data-i18n="favoritesTitle">Lista de referências</h2>
+      </div>
+      <button class="references-dialog-close" id="references-dialog-close" type="button" aria-label="Fechar lista de referências" data-i18n-aria-label="closeReferenceList">×</button>
+    </div>
+    <p class="references-dialog-description" id="references-dialog-description" data-i18n="referencesDialogDescription">Sua lista fica salva neste navegador enquanto você faz novas pesquisas.</p>
+    <p class="references-dialog-count" id="references-count" aria-live="polite"></p>
+    <div class="references-empty" id="references-empty" hidden>
+      <h3 data-i18n="favoritesEmptyTitle">Sua lista está vazia</h3>
+      <p data-i18n="favoritesEmptyText">Adicione referências pelos resultados para exportá-las juntas.</p>
+    </div>
+    <ol class="references-list" id="references-list" aria-label="Referências selecionadas" data-i18n-aria-label="favoritesTitle"></ol>
+    <div class="reference-list-toolbar">
+      <label class="export-choice" for="export-format"><span data-i18n="format">Formato</span>
+        <select id="export-format" aria-label="Formato da exportação" data-i18n-aria-label="exportFormat">
+          <option value="bibtex">BibTeX</option>
+          <option value="ris">RIS</option>
+          <option value="csv">CSV</option>
+        </select>
+      </label>
+      <button id="export-button" class="export-button" type="button" disabled>
+        <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 2v7m0 0 2.5-2.5M8 9 5.5 6.5M3 10.5V14h10v-3.5" />
+        </svg>
+        <span data-i18n="exportSelected">Exportar lista</span>
+        <span class="export-count" id="export-count">0</span>
+      </button>
+    </div>
+  </dialog>
 
   <footer>
     <div class="content-width footer-inner">
