@@ -113,7 +113,7 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertNotIn("shareButton.addEventListener", self.app)
 
     def test_reference_dialog_contains_list_and_export_controls(self):
-        listing_toolbar = re.search(r'<div class="listing-toolbar" id="listing-toolbar">([\s\S]*?)</div>\s*<p id="view-note"', self.html)
+        listing_toolbar = re.search(r'<div class="listing-toolbar" id="listing-toolbar">([\s\S]*?)</div>\s*<fieldset class="dataset-filters"', self.html)
         self.assertIsNotNone(listing_toolbar)
         toolbar = listing_toolbar.group(1)
         self.assertIn('id="sort"', toolbar)
@@ -207,7 +207,7 @@ class SiteIntegrityTests(unittest.TestCase):
         })
 
     def test_result_cards_are_compact_and_add_references_at_the_bottom(self):
-        card = re.search(r"function resultCard\(work\) \{([\s\S]*?)\n\}\n\nfunction toggleFavorite", self.app)
+        card = re.search(r"function resultCard\(work\) \{([\s\S]*?)\n\}", self.app)
         self.assertIsNotNone(card)
         self.assertNotIn("work.abstract", card.group(1))
         self.assertNotIn('t("fieldAbstract")', card.group(1))
@@ -291,7 +291,7 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertNotIn('id="sort"', search_form.group(1))
         self.assertLess(self.html.index('id="result-tabs"'), self.html.index('id="sort"'))
         self.assertLess(self.html.index('id="sort"'), self.html.index('id="view-note"'))
-        self.assertIn('const DEFAULT_SOURCES = ["openalex", "crossref"]', self.app)
+        self.assertIn('const DEFAULT_SOURCES = ["openalex", "crossref", "datacite"]', self.app)
         self.assertRegex(self.app, r'sortSelect\.addEventListener\("change"[\s\S]{0,220}form\.requestSubmit\(\)')
 
     def test_publication_period_filter_has_presets_and_reveals_custom_years(self):
