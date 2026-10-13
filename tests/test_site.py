@@ -92,6 +92,20 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('data-view="datasets"', self.html)
         self.assertIn('data-i18n="authorScope"', self.html)
 
+    def test_tab_counts_keep_their_values_when_switching_result_types(self):
+        self.assertIn('mergeResultCounts(viewResultCounts, queryType,', self.app)
+        self.assertIn('updateResultCounts(searchFilters.type, loadedItems)', self.app)
+        self.assertIn('viewResultCounts = { publications: null, authors: null, datasets: null }', self.app)
+        self.assertIn('viewCounts[view].textContent = formatNumber(viewResultCounts[view] ?? 0)', self.app)
+
+    def test_providers_choose_translated_titles_and_recover_from_bad_metadata(self):
+        crossref = (ROOT / "js/providers/crossref.js").read_text(encoding="utf-8")
+        openalex = (ROOT / "js/providers/openalex.js").read_text(encoding="utf-8")
+        utilities = (ROOT / "js/core/work-utils.js").read_text(encoding="utf-8")
+        self.assertIn('selectWorkTitle((Array.isArray(work.title) ? work.title : []).map(stripMarkup))', crossref)
+        self.assertIn('selectWorkTitle(work.display_name)', openalex)
+        self.assertIn('selectWorkTitle([existing.title, incoming.title])', utilities)
+
     def test_search_sharing_controls_and_code_are_removed(self):
         for obsolete in ('id="share-button"', 'id="share-fallback"', 'id="share-url"'):
             self.assertNotIn(obsolete, self.html)

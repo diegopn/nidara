@@ -1,4 +1,4 @@
-import { normalizeDoi, normalizePublicationYear, safeExternalUrl } from "../core/work-utils.js";
+import { normalizeDoi, normalizePublicationYear, safeExternalUrl, selectWorkTitle } from "../core/work-utils.js";
 
 const ENDPOINT = "https://api.openalex.org/works";
 const PAGE_SIZE = 15;
@@ -49,7 +49,7 @@ function normalizeWork(work) {
   return {
     id: openAlexUrl || doi,
     providerId: "openalex",
-    title: typeof work.display_name === "string" && work.display_name.trim() ? work.display_name.trim() : "",
+    title: selectWorkTitle(work.display_name),
     authors,
     year: normalizePublicationYear(work.publication_year),
     journal,

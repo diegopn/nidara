@@ -1,6 +1,7 @@
 import { exportWorks } from "./core/export.js";
 import { federatedSearch } from "./core/federated-search.js";
 import { formatNumber, getLanguage, pluralMessage, setLanguage, t } from "./core/i18n.js";
+import { mergeResultCounts } from "./core/result-counts.js";
 import { deduplicateWorks, normalizeDoi, safeExternalUrl, workKey } from "./core/work-utils.js";
 
 const FAVORITES_KEY = "nidara:favorites:v1";
@@ -48,6 +49,7 @@ let favorites = readFavorites();
 let pageNumbers = {};
 let providerProgress = {};
 let providerTotals = {};
+let viewResultCounts = { publications: null, authors: null, datasets: null };
 let activeView = "publications";
 let selectedAuthor = "";
 let showAllAuthors = false;
@@ -193,11 +195,10 @@ function summarizeAuthors(works) {
     b.records - a.records || b.citations - a.citations || a.name.localeCompare(b.name, getLanguage()));
 }
 
-function updateViewControls(works, publications, authors) {
-  const datasets = datasetItems(works);
-  viewCounts.publications.textContent = formatNumber(publications.length);
-  viewCounts.authors.textContent = formatNumber(authors.length);
-  viewCounts.datasets.textContent = formatNumber(datasets.length);
+function updateViewControls(publications, authors) {
+  for (const view of Object.keys(viewCounts)) {
+    viewCounts[view].textContent = formatNumber(viewResultCounts[view] ?? 0);
+  }
   for (const tab of viewTabs) {
     const selected = tab.dataset.view === activeView;
     tab.setAttribute("aria-selected", String(selected));
@@ -215,6 +216,15 @@ function updateViewControls(works, publications, authors) {
   });
   const loadMoreLabel = more.querySelector("[data-i18n]");
   if (loadMoreLabel) loadMoreLabel.textContent = t(activeView === "authors" ? "loadMoreAuthors" : "loadMore");
+}
+
+function updateResultCounts(queryType, works) {
+  const publications = publicationItems(works);
+  viewResultCounts = mergeResultCounts(viewResultCounts, queryType, {
+    publications: publications.length,
+    authors: summarizeAuthors(publications).length,
+    datasets: datasetItems(works).length
+  });
 }
 
 function renderAuthors(authors) {
@@ -272,7 +282,7 @@ function renderCurrentItems() {
   const authors = summarizeAuthors(publications);
   const works = visibleWorks(items);
   list.replaceChildren();
-  updateViewControls(items, publications, authors);
+  updateViewControls(publications, authors);
   authorsMore.hidden = true;
 
   if (activeView === "authors") {
@@ -539,6 +549,7 @@ async function runSearch(append = false) {
       }
     }
     loadedItems = deduplicateWorks([...loadedItems, ...result.items]);
+    if (result.sources.some(source => source.result)) updateResultCounts(searchFilters.type, loadedItems);
     renderCurrentItems();
     resultStatus(result, append);
   } catch (error) {
@@ -561,6 +572,7 @@ form.addEventListener("submit", event => {
   selectedAuthor = "";
   showAllAuthors = false;
   activeFilters = filters;
+  viewResultCounts = { publications: null, authors: null, datasets: null };
   updateShareUrl(filters);
   runSearch();
 });
