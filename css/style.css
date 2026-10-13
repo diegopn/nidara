@@ -188,7 +188,7 @@ h2 { margin: 4px 0 0; font-size: clamp(2rem, 3.4vw, 2.8rem); line-height: 1.05; 
 .view-note, .authors-scope { margin: 10px 0 4px; color: var(--muted); font-size: 11px; }
 #status { min-height: 22px; margin: 7px 0 8px; color: var(--muted); font-size: 11px; }
 .results-list { display: grid; gap: 10px; }
-.result { min-width: 0; padding: 17px 18px; border: 1px solid var(--line); background: var(--page-surface); }
+.result { min-width: 0; padding: 17px 18px; border: 1px solid var(--line); background: var(--research-surface); }
 .result-heading-row { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
 .result h3 { max-width: 950px; margin: 7px 0 5px; font-size: 16px; font-weight: 700; line-height: 1.38; overflow-wrap: anywhere; }
 .result h3 a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }

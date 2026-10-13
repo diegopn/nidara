@@ -194,6 +194,12 @@ class SiteIntegrityTests(unittest.TestCase):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
         self.assertNotIn(".source-tag", css)
 
+    def test_publication_cards_use_a_distinct_surface_color(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        result = re.search(r"\.result\s*\{([^}]*)\}", css)
+        self.assertIsNotNone(result)
+        self.assertRegex(result.group(1), r"background:\s*var\(--research-surface\)")
+
     def test_h1_and_h2_use_semibold_weight(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
         heading_rule = re.search(r"h1, h2\s*\{([^}]*)\}", css)
