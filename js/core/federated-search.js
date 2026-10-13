@@ -5,7 +5,7 @@ const CACHE_TTL = 5 * 60 * 1000;
 const responseCache = new Map();
 
 export async function federatedSearch({ filters, pages, sourceIds, signal }) {
-  const active = providers.filter(provider => sourceIds.includes(provider.id));
+  const active = providers.filter(provider => sourceIds.includes(provider.id) && (!provider.supports || provider.supports.includes(filters.type)));
   const settled = await Promise.allSettled(active.map(async provider => ({
     provider,
     result: await cachedSearch(provider, { ...filters, page: pages[provider.id] || 1 }, signal)
@@ -59,6 +59,9 @@ function orderWorks(sources, sort) {
   }
   if (sort === "cited") {
     return works.sort((a, b) => (b.citations ?? -1) - (a.citations ?? -1) || a.title.localeCompare(b.title));
+  }
+  if (sort === "downloads") {
+    return works.sort((a, b) => (b.downloads ?? -1) - (a.downloads ?? -1) || a.title.localeCompare(b.title));
   }
 
   const byKey = new Map(works.map(work => [workKey(work), work]));
