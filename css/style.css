@@ -3,10 +3,10 @@
   --page-surface: #fbfaf7;
   --hero-surface: #f4f4ef;
   --research-surface: #edf3ef;
-  --result-surface: #f0f1ea;
-  --save-surface: #e5eee7;
-  --save-hover-surface: #d8e5dc;
-  --save-border: #c3d7ca;
+  --result-surface: #f5f3ed;
+  --save-surface: #35594f;
+  --save-hover-surface: #2e4b42;
+  --save-border: #35594f;
   --ink: #293b37;
   --muted: #60736c;
   --body-copy: #455a53;
@@ -27,9 +27,9 @@
   --hero-surface: #1e2430;
   --research-surface: #272e3b;
   --result-surface: #242831;
-  --save-surface: #33473d;
-  --save-hover-surface: #3b5147;
-  --save-border: #587064;
+  --save-surface: #35594f;
+  --save-hover-surface: #2e4b42;
+  --save-border: #35594f;
   --ink: #edf1f6;
   --muted: #aeb8c7;
   --body-copy: #c9d1de;
@@ -48,9 +48,9 @@
     --hero-surface: #1e2430;
     --research-surface: #272e3b;
     --result-surface: #242831;
-    --save-surface: #33473d;
-    --save-hover-surface: #3b5147;
-    --save-border: #587064;
+    --save-surface: #35594f;
+    --save-hover-surface: #2e4b42;
+    --save-border: #35594f;
     --ink: #edf1f6;
     --muted: #aeb8c7;
     --body-copy: #c9d1de;
@@ -226,7 +226,7 @@ h2 { margin: 4px 0 0; font-size: clamp(2rem, 3.4vw, 2.8rem); line-height: 1.05; 
 .doi-line { margin: 8px 0 0; font-size: 10px; }
 .doi-line a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
 .result-actions { display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
-.save-button { flex: 0 0 auto; min-height: 40px; padding: 7px 12px; border: 1px solid var(--save-border); border-radius: 0; color: var(--focus); background: var(--save-surface); font-size: 11px; font-weight: 700; }
+.save-button { flex: 0 0 auto; min-height: 40px; padding: 7px 12px; border: 1px solid var(--save-border); border-radius: 0; color: var(--button-text); background: var(--save-surface); font-size: 11px; font-weight: 700; }
 .save-button:hover, .save-button[aria-pressed="true"] { border-color: var(--accent); background: var(--save-hover-surface); }
 .author-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 245px), 1fr)); gap: 10px; }
 .author-card { display: flex; min-width: 0; flex-direction: column; align-items: start; padding: 15px 16px; border: 1px solid var(--line); background: var(--page-surface); }
