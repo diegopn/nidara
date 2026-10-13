@@ -34,3 +34,6 @@ class CoreBehaviorTests(unittest.TestCase):
 
     def test_open_access_and_publication_type_search_filters(self):
         self.run_node_test("search-filters.test.mjs")
+
+    def test_dataset_metadata_filters_and_datacite_search(self):
+        self.run_node_test("datasets.test.mjs")
