@@ -1,6 +1,7 @@
 {
   "pt-BR": {
     "documentTitle": "Nidara — Descoberta científica aberta",
+    "createdBy": "Criado por",
     "description": "Pesquise e conecte publicações científicas em fontes abertas.",
     "skipToContent": "Pular para o conteúdo",
     "homeLabel": "Nidara, início",
@@ -144,6 +145,7 @@
   },
   "en": {
     "documentTitle": "Nidara — Open scientific discovery",
+    "createdBy": "Created by",
     "description": "Search and connect scientific publications across open sources.",
     "skipToContent": "Skip to content",
     "homeLabel": "Nidara, home",
@@ -287,6 +289,7 @@
   },
   "es": {
     "documentTitle": "Nidara — Descubrimiento científico abierto",
+    "createdBy": "Creado por",
     "description": "Busca y conecta publicaciones científicas en fuentes abiertas.",
     "skipToContent": "Saltar al contenido",
     "homeLabel": "Nidara, inicio",

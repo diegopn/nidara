@@ -294,6 +294,32 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('const DEFAULT_SOURCES = ["openalex", "crossref"]', self.app)
         self.assertRegex(self.app, r'sortSelect\.addEventListener\("change"[\s\S]{0,220}form\.requestSubmit\(\)')
 
+    def test_desktop_sort_control_is_right_aligned_and_stays_on_one_line(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        desktop = css.split("@media (max-width: 760px)", 1)[0]
+        toolbar = re.search(r"\.listing-toolbar\s*\{([^}]*)\}", desktop)
+        label = re.search(r"\.listing-toolbar \.filter-field\s*\{([^}]*)\}", desktop)
+        self.assertIsNotNone(toolbar)
+        self.assertIsNotNone(label)
+        self.assertRegex(toolbar.group(1), r"justify-content:\s*flex-end")
+        self.assertRegex(label.group(1), r"white-space:\s*nowrap")
+
+        mobile = css.split("@media (max-width: 760px)", 1)[1].split("@media (max-width: 390px)", 1)[0]
+        mobile_toolbar = re.search(r"\.listing-toolbar\s*\{([^}]*)\}", mobile)
+        self.assertIsNotNone(mobile_toolbar)
+        self.assertIn("flex-direction: column", mobile_toolbar.group(1))
+
+    def test_desktop_container_and_main_sections_use_requested_dimensions(self):
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        self.assertRegex(css, r"--max:\s*1180px")
+        self.assertIn("width: min(var(--max), calc(100% - 72px))", css)
+
+        desktop = css.split("@media (max-width: 760px)", 1)[0]
+        for selector in (r"\.hero", r"\.results"):
+            section = re.search(selector + r"\s*\{([^}]*)\}", desktop)
+            self.assertIsNotNone(section)
+            self.assertRegex(section.group(1), r"padding-block:\s*100px")
+
     def test_mobile_search_button_follows_the_year_fields(self):
         search_form = re.search(r'<form\b[^>]*id="search-form"[^>]*>(.*?)</form>', self.html, re.DOTALL)
         self.assertIsNotNone(search_form)
@@ -329,13 +355,18 @@ class SiteIntegrityTests(unittest.TestCase):
         footer = re.search(r"<footer>([\s\S]*?)</footer>", self.html)
         self.assertIsNotNone(footer)
         self.assertRegex(footer.group(1), r'<div class="footer-brand">\s*<img class="footer-mark" src="\./assets/nidara-mark\.svg\?v=[a-f0-9]{12}" alt="">\s*<strong>Nidara</strong>\s*</div>')
-        self.assertRegex(footer.group(1), r'<a\b(?=[^>]*href="https://diegopn\.github\.io/")[^>]*>Diego Pereira</a>')
+        self.assertRegex(footer.group(1), r'<div class="footer-credit">\s*<span data-i18n="createdBy">Criado por</span>\s*<a\b(?=[^>]*href="https://diegopn\.github\.io/")[^>]*>Diego Pereira</a>\s*</div>')
         self.assertLess(footer.group(1).index('class="footer-brand"'), footer.group(1).index('class="footer-author"'))
         self.assertNotIn('class="footer-links"', footer.group(1))
 
         messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
+        self.assertEqual({locale: values["createdBy"] for locale, values in messages.items()}, {
+            "pt-BR": "Criado por",
+            "en": "Created by",
+            "es": "Creado por",
+        })
         for values in messages.values():
-            self.assertFalse({"createdBy", "repository", "license"} & set(values))
+            self.assertFalse({"repository", "license"} & set(values))
 
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
         desktop_footer = re.search(r"\.footer-inner\s*\{([^}]*)\}", css)
