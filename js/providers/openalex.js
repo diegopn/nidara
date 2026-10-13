@@ -58,7 +58,8 @@ export function normalizeWork(work) {
   }).filter(Boolean);
   const journal = work.primary_location?.source?.display_name || "";
   const abstract = abstractFromIndex(work.abstract_inverted_index);
-  const datasetMetadata = String(work.type || "").toLowerCase() === "dataset" ? {
+  const isDataset = String(work.type || "").toLowerCase() === "dataset";
+  const datasetMetadata = isDataset ? {
     source: "OpenAlex",
     landingPage: safeExternalUrl(work.primary_location?.landing_page_url),
     publisher: journal,
@@ -94,7 +95,7 @@ export function normalizeWork(work) {
     citations: Number.isFinite(work.cited_by_count) ? work.cited_by_count : null,
     doi,
     url: url || openAlexUrl || "https://openalex.org/",
-    openAccess: typeof work.open_access?.is_oa === "boolean" ? work.open_access.is_oa : null,
+    openAccess: isDataset ? null : (typeof work.open_access?.is_oa === "boolean" ? work.open_access.is_oa : null),
     abstract,
     datasetMetadata,
     sources: [{ id: "openalex", label: "OpenAlex" }],
