@@ -111,6 +111,7 @@ const openAlexDataset = normalizeOpenAlexWork({
   display_name: "Forest measurements from OpenAlex",
   type: "dataset",
   publication_year: 2023,
+  open_access: { is_oa: true },
   primary_location: { landing_page_url: "https://figshare.com/articles/dataset/1", source: { display_name: "Figshare" } },
   authorships: [{
     author: { display_name: "Rita Costa", orcid: "https://orcid.org/0000-0002-1234-5678" },
@@ -119,6 +120,7 @@ const openAlexDataset = normalizeOpenAlexWork({
   abstract_inverted_index: { Forest: [0], measurements: [1] }
 });
 assert.equal(openAlexDataset.datasetMetadata.publisher, "Figshare");
+assert.equal(openAlexDataset.openAccess, null, "OpenAlex read access does not declare a dataset reuse license");
 assert.equal(openAlexDataset.datasetMetadata.description, "Forest measurements");
 assert.deepEqual(openAlexDataset.datasetMetadata.accessUrls, ["https://figshare.com/articles/dataset/1"]);
 assert.deepEqual(openAlexDataset.datasetMetadata.creators[0].affiliations, ["Federal University"]);
@@ -144,6 +146,23 @@ const merged = mergeWorks({ ...work, datasetMetadata: {
 assert.equal(merged.datasetMetadata.description, "Full authoritative description");
 assert.equal(merged.datasetMetadata.related.length, 1);
 assert.equal(merged.datasetMetadata.creators.length, 1, "A DOI match should combine creator metadata without repeating the same ORCID");
+
+const openAlexReadAccess = { ...openAlexDataset, doi: unknownLicense.doi };
+assert.equal(
+  mergeWorks(unknownLicense, openAlexReadAccess).openAccess,
+  null,
+  "OpenAlex read access must not imply a reusable license when DataCite has none"
+);
+assert.equal(
+  mergeWorks(openAlexReadAccess, unknownLicense).openAccess,
+  null,
+  "DataCite's unknown reuse license must remain unknown regardless of provider order"
+);
+assert.equal(
+  mergeWorks(restricted, { ...openAlexReadAccess, doi: restricted.doi }).openAccess,
+  false,
+  "OpenAlex read access must not override DataCite's explicit reuse restriction"
+);
 
 const originalFetch = globalThis.fetch;
 try {
