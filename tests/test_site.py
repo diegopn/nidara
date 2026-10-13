@@ -157,19 +157,27 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn("--page-surface: #fbfaf7", css)
         self.assertIn("--accent: #426b62", css)
 
-    def test_footer_credits_diego_pereira_and_links_to_the_main_site(self):
+    def test_footer_places_the_project_mark_left_and_creator_link_right(self):
         footer = re.search(r"<footer>([\s\S]*?)</footer>", self.html)
         self.assertIsNotNone(footer)
-        self.assertIn('data-i18n="createdBy">Criado por</span>', footer.group(1))
+        self.assertRegex(footer.group(1), r'<div class="footer-brand">\s*<img class="footer-mark" src="\./assets/nidara-mark\.svg" alt="">\s*<strong>Nidara</strong>\s*</div>')
         self.assertRegex(footer.group(1), r'<a\b(?=[^>]*href="https://diegopn\.github\.io/")[^>]*>Diego Pereira</a>')
-        self.assertNotIn('data-i18n="portfolio"', footer.group(1))
+        self.assertLess(footer.group(1).index('class="footer-brand"'), footer.group(1).index('class="footer-author"'))
+        self.assertNotIn('class="footer-links"', footer.group(1))
 
         messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
-        self.assertEqual({locale: values["createdBy"] for locale, values in messages.items()}, {
-            "pt-BR": "Criado por",
-            "en": "Created by",
-            "es": "Creado por",
-        })
+        for values in messages.values():
+            self.assertFalse({"createdBy", "repository", "license"} & set(values))
+
+        css = (ROOT / "css/style.css").read_text(encoding="utf-8")
+        desktop_footer = re.search(r"\.footer-inner\s*\{([^}]*)\}", css)
+        self.assertIsNotNone(desktop_footer)
+        self.assertIn("justify-content: space-between", desktop_footer.group(1))
+        mobile = css.split("@media (max-width: 760px)", 1)[1].split("@media (max-width: 390px)", 1)[0]
+        mobile_footer = re.search(r"\.footer-inner\s*\{([^}]*)\}", mobile)
+        self.assertIsNotNone(mobile_footer)
+        self.assertIn("align-items: center", mobile_footer.group(1))
+        self.assertIn("flex-direction: column", mobile_footer.group(1))
 
     def test_hero_and_search_filters_share_one_section_with_clear_headline(self):
         hero = re.search(r'<section class="hero"[\s\S]*?</section>', self.html)
@@ -233,7 +241,7 @@ class SiteIntegrityTests(unittest.TestCase):
             self.assertIn('href="../assets/nidara-mark.svg"', html)
             self.assertIn('src="../assets/nidara-mark.svg"', html)
             self.assertIn('href="../"', html)
-            self.assertIn('href="../LICENSE"', html)
+            self.assertEqual(html.count('src="../assets/nidara-mark.svg"'), 2)
             language_nav = re.search(r'<nav\b[^>]*id="language-switcher"[^>]*>(.*?)</nav>', html, re.DOTALL)
             self.assertIsNotNone(language_nav)
             language_links = {target_locale: href for href, target_locale in re.findall(r'<a href="([^"]+)" data-locale="([^"]+)"', language_nav.group(1))}
