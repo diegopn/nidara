@@ -4,7 +4,7 @@ const ENDPOINT = "https://api.openalex.org/works";
 const PAGE_SIZE = 15;
 const TYPES = { article: "article", preprint: "preprint", dataset: "dataset", book: "book" };
 
-export async function searchWorks({ query, yearFrom, yearTo, type = "all", sort = "relevance", page = 1, signal }) {
+export async function searchWorks({ query, yearFrom, yearTo, fromDate, toDate, type = "all", sort = "relevance", page = 1, signal }) {
   const url = new URL(ENDPOINT);
   url.searchParams.set("search", query);
   url.searchParams.set("per_page", String(PAGE_SIZE));
@@ -12,8 +12,8 @@ export async function searchWorks({ query, yearFrom, yearTo, type = "all", sort 
   url.searchParams.set("select", "id,doi,display_name,publication_year,authorships,primary_location,cited_by_count,open_access,abstract_inverted_index,type");
 
   const filters = [];
-  if (yearFrom) filters.push("from_publication_date:" + yearFrom + "-01-01");
-  if (yearTo) filters.push("to_publication_date:" + yearTo + "-12-31");
+  if (fromDate || yearFrom) filters.push("from_publication_date:" + (fromDate || yearFrom + "-01-01"));
+  if (toDate || yearTo) filters.push("to_publication_date:" + (toDate || yearTo + "-12-31"));
   if (TYPES[type]) filters.push("type:" + TYPES[type]);
   if (filters.length) url.searchParams.set("filter", filters.join(","));
   if (sort === "newest") url.searchParams.set("sort", "publication_date:desc");

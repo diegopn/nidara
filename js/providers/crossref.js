@@ -10,7 +10,7 @@ const TYPES = {
 };
 const FIELDS = "DOI,URL,title,author,issued,published,container-title,is-referenced-by-count,abstract,type,license";
 
-export async function searchWorks({ query, yearFrom, yearTo, type = "all", sort = "relevance", page = 1, signal }) {
+export async function searchWorks({ query, yearFrom, yearTo, fromDate, toDate, type = "all", sort = "relevance", page = 1, signal }) {
   const url = new URL(ENDPOINT);
   const offset = (page - 1) * PAGE_SIZE;
   url.searchParams.set("query", query);
@@ -19,8 +19,8 @@ export async function searchWorks({ query, yearFrom, yearTo, type = "all", sort 
   url.searchParams.set("select", FIELDS);
 
   const filters = [];
-  if (yearFrom) filters.push("from-pub-date:" + yearFrom + "-01-01");
-  if (yearTo) filters.push("until-pub-date:" + yearTo + "-12-31");
+  if (fromDate || yearFrom) filters.push("from-pub-date:" + (fromDate || yearFrom + "-01-01"));
+  if (toDate || yearTo) filters.push("until-pub-date:" + (toDate || yearTo + "-12-31"));
   for (const value of TYPES[type] || []) filters.push("type:" + value);
   if (filters.length) url.searchParams.set("filter", filters.join(","));
   if (sort === "newest") url.searchParams.set("sort", "published");

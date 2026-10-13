@@ -170,7 +170,7 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIsNotNone(clear_search)
         self.assertIn('navigation?.type !== "reload"', clear_search.group(1))
         self.assertIn('queryInput.value = ""', clear_search.group(1))
-        self.assertIn('["q", "from", "to", "type", "sort", "sources", "view", "author"]', clear_search.group(1))
+        self.assertIn('["q", "from", "to", "period", "type", "sort", "sources", "view", "author"]', clear_search.group(1))
         self.assertIn("url.searchParams.delete(key)", clear_search.group(1))
         self.assertRegex(self.app, r"const reloaded = clearSearchFromUrlOnReload\(\);[\s\S]*?if \(!reloaded\) filtersFromUrl\(\);")
 
@@ -293,6 +293,35 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertLess(self.html.index('id="sort"'), self.html.index('id="view-note"'))
         self.assertIn('const DEFAULT_SOURCES = ["openalex", "crossref"]', self.app)
         self.assertRegex(self.app, r'sortSelect\.addEventListener\("change"[\s\S]{0,220}form\.requestSubmit\(\)')
+
+    def test_publication_period_filter_has_presets_and_reveals_custom_years(self):
+        search_form = re.search(r'<form\b[^>]*id="search-form"[^>]*>(.*?)</form>', self.html, re.DOTALL)
+        self.assertIsNotNone(search_form)
+        form = search_form.group(1)
+        period_select = re.search(r'<select\b(?=[^>]*id="period-range")(?=[^>]*name="period")([^>]*)>([\s\S]*?)</select>', form)
+        self.assertIsNotNone(period_select)
+        self.assertIn('value="all" data-i18n="periodAll" selected', period_select.group(2))
+        self.assertEqual(
+            re.findall(r'<option value="([^"]+)"', period_select.group(2)),
+            ["all", "1", "2", "5", "10", "custom"],
+        )
+
+        custom = re.search(r'<div\b(?=[^>]*id="custom-year-range")(?=[^>]*hidden)([^>]*)>([\s\S]*?)</div>', form)
+        self.assertIsNotNone(custom)
+        self.assertIn('id="year-from"', custom.group(2))
+        self.assertIn('id="year-to"', custom.group(2))
+        self.assertIn('data-i18n="yearFrom"', custom.group(2))
+        self.assertIn('data-i18n="yearTo"', custom.group(2))
+        self.assertIn('periodInput.addEventListener("change", updateCustomYearRange)', self.app)
+
+        messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
+        expected = {
+            "pt-BR": ("Qualquer período", "Último ano", "Últimos 2 anos", "Últimos 5 anos", "Últimos 10 anos", "Personalizado"),
+            "en": ("Any time", "Past year", "Past 2 years", "Past 5 years", "Past 10 years", "Custom"),
+            "es": ("Cualquier período", "Último año", "Últimos 2 años", "Últimos 5 años", "Últimos 10 años", "Personalizado"),
+        }
+        for locale, values in messages.items():
+            self.assertEqual(tuple(values[key] for key in ("periodAll", "periodLast1Year", "periodLast2Years", "periodLast5Years", "periodLast10Years", "periodCustom")), expected[locale])
 
     def test_desktop_sort_control_is_right_aligned_and_stays_on_one_line(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")

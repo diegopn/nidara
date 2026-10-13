@@ -30,7 +30,7 @@ export async function federatedSearch({ filters, pages, sourceIds, signal }) {
 }
 
 async function cachedSearch(provider, filters, signal) {
-  const key = JSON.stringify({ provider: provider.id, query: filters.query, yearFrom: filters.yearFrom, yearTo: filters.yearTo, type: filters.type, sort: filters.sort, page: filters.page });
+  const key = JSON.stringify({ provider: provider.id, query: filters.query, fromDate: filters.fromDate, toDate: filters.toDate, type: filters.type, sort: filters.sort, page: filters.page });
   const now = Date.now();
   const cached = responseCache.get(key);
   if (cached && cached.expiresAt > now) return cached.value;

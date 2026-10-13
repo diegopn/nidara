@@ -1,6 +1,7 @@
 import { exportWorks } from "./core/export.js";
 import { federatedSearch } from "./core/federated-search.js";
 import { formatNumber, getLanguage, pluralMessage, setLanguage, t } from "./core/i18n.js";
+import { publicationDateRange } from "./core/period-utils.js";
 import { mergeResultCounts } from "./core/result-counts.js";
 import { deduplicateWorks, normalizeDoi, safeExternalUrl, workKey } from "./core/work-utils.js";
 
@@ -9,6 +10,8 @@ const MAX_FAVORITES = 250;
 const DEFAULT_SOURCES = ["openalex", "crossref"];
 const form = document.querySelector("#search-form");
 const queryInput = document.querySelector("#query");
+const periodInput = document.querySelector("#period-range");
+const customYearRange = document.querySelector("#custom-year-range");
 const yearFromInput = document.querySelector("#year-from");
 const yearToInput = document.querySelector("#year-to");
 const sortSelect = document.querySelector("#sort");
@@ -428,8 +431,10 @@ function openReferencesDialog() {
 
 function readFiltersFromForm() {
   const query = queryInput.value.trim();
-  const yearFrom = yearFromInput.value.trim();
-  const yearTo = yearToInput.value.trim();
+  const period = periodInput.value;
+  const isCustomPeriod = period === "custom";
+  const yearFrom = isCustomPeriod ? yearFromInput.value.trim() : "";
+  const yearTo = isCustomPeriod ? yearToInput.value.trim() : "";
   queryInput.setCustomValidity(query.length < 2 ? t("queryMin") : "");
   yearFromInput.setCustomValidity("");
   yearToInput.setCustomValidity("");
@@ -440,21 +445,33 @@ function readFiltersFromForm() {
 
   return {
     query,
+    period,
     yearFrom,
     yearTo,
+    ...publicationDateRange(period, yearFrom, yearTo),
     sort: sortSelect.value,
     sourceIds: [...DEFAULT_SOURCES]
   };
+}
+
+function updateCustomYearRange() {
+  const isCustomPeriod = periodInput.value === "custom";
+  customYearRange.hidden = !isCustomPeriod;
+  yearFromInput.disabled = !isCustomPeriod;
+  yearToInput.disabled = !isCustomPeriod;
+  yearFromInput.setCustomValidity("");
+  yearToInput.setCustomValidity("");
 }
 
 function updateShareUrl(filters) {
   if (!filters) return;
   const url = new URL(location.href);
   url.hash = "";
-  for (const key of ["q", "from", "to", "type", "sort", "sources", "view", "author"]) url.searchParams.delete(key);
+  for (const key of ["q", "from", "to", "period", "type", "sort", "sources", "view", "author"]) url.searchParams.delete(key);
   url.searchParams.set("q", filters.query);
-  if (filters.yearFrom) url.searchParams.set("from", filters.yearFrom);
-  if (filters.yearTo) url.searchParams.set("to", filters.yearTo);
+  if (filters.period !== "all") url.searchParams.set("period", filters.period);
+  if (filters.period === "custom" && filters.yearFrom) url.searchParams.set("from", filters.yearFrom);
+  if (filters.period === "custom" && filters.yearTo) url.searchParams.set("to", filters.yearTo);
   if (filters.sort !== "relevance") url.searchParams.set("sort", filters.sort);
   if (activeView !== "publications") url.searchParams.set("view", activeView);
   if (selectedAuthor) url.searchParams.set("author", selectedAuthor);
@@ -469,6 +486,11 @@ function filtersFromUrl() {
   queryInput.value = query.slice(0, 250);
   yearFromInput.value = validYear(url.searchParams.get("from")) ? url.searchParams.get("from") : "";
   yearToInput.value = validYear(url.searchParams.get("to")) ? url.searchParams.get("to") : "";
+  const period = url.searchParams.get("period");
+  periodInput.value = ["all", "1", "2", "5", "10", "custom"].includes(period)
+    ? period
+    : yearFromInput.value || yearToInput.value ? "custom" : "all";
+  updateCustomYearRange();
   const view = url.searchParams.get("view");
   activeView = ["publications", "authors", "datasets"].includes(view)
     ? view
@@ -484,7 +506,7 @@ function clearSearchFromUrlOnReload() {
   if (navigation?.type !== "reload") return false;
   queryInput.value = "";
   const url = new URL(location.href);
-  for (const key of ["q", "from", "to", "type", "sort", "sources", "view", "author"]) url.searchParams.delete(key);
+  for (const key of ["q", "from", "to", "period", "type", "sort", "sources", "view", "author"]) url.searchParams.delete(key);
   history.replaceState(null, "", url);
   return true;
 }
@@ -621,6 +643,7 @@ for (const tab of viewTabs) {
 sortSelect.addEventListener("change", () => {
   if (activeFilters) form.requestSubmit();
 });
+periodInput.addEventListener("change", updateCustomYearRange);
 savedToggle.addEventListener("click", openReferencesDialog);
 referencesClear.addEventListener("click", clearReferenceList);
 referencesDialogClose.addEventListener("click", () => referencesDialog.close());
@@ -653,6 +676,7 @@ function setupLanguage() {
 
 setupLanguage();
 setupTheme();
+updateCustomYearRange();
 refreshSavedCount();
 renderCurrentItems();
 const reloaded = clearSearchFromUrlOnReload();

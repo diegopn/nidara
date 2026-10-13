@@ -25,3 +25,6 @@ class CoreBehaviorTests(unittest.TestCase):
 
     def test_unicode_titles_use_translations_and_reject_garbled_text(self):
         self.run_node_test("titles.test.mjs")
+
+    def test_publication_periods_calculate_relative_and_custom_dates(self):
+        self.run_node_test("periods.test.mjs")

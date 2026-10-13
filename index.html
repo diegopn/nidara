@@ -54,9 +54,22 @@
             <input id="query" name="q" type="search" minlength="2" maxlength="250" placeholder="Assunto, método ou conceito" data-i18n-placeholder="searchPlaceholder" autocomplete="off" autofocus required>
 
             <fieldset class="filters" aria-label="Filtros da pesquisa" data-i18n-aria-label="searchFilters">
-              <legend data-i18n="yearRange">Período de publicação</legend>
-              <label class="filter-field" for="year-from"><span data-i18n="yearFrom">De</span><input id="year-from" name="from" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
-              <label class="filter-field" for="year-to"><span data-i18n="yearTo">Até</span><input id="year-to" name="to" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder"></label>
+              <legend class="visually-hidden" data-i18n="searchFilters">Filtros da pesquisa</legend>
+              <label class="filter-field period-field" for="period-range">
+                <span data-i18n="yearRange">Período de publicação</span>
+                <select id="period-range" name="period">
+                  <option value="all" data-i18n="periodAll" selected>Qualquer período</option>
+                  <option value="1" data-i18n="periodLast1Year">Último ano</option>
+                  <option value="2" data-i18n="periodLast2Years">Últimos 2 anos</option>
+                  <option value="5" data-i18n="periodLast5Years">Últimos 5 anos</option>
+                  <option value="10" data-i18n="periodLast10Years">Últimos 10 anos</option>
+                  <option value="custom" data-i18n="periodCustom">Personalizado</option>
+                </select>
+              </label>
+              <div class="custom-year-range" id="custom-year-range" hidden>
+                <label class="filter-field" for="year-from"><span data-i18n="yearFrom">Ano inicial</span><input id="year-from" name="from" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder" disabled></label>
+                <label class="filter-field" for="year-to"><span data-i18n="yearTo">Ano final</span><input id="year-to" name="to" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder" disabled></label>
+              </div>
             </fieldset>
             <button id="search-button" type="submit"><span data-i18n="searchButton">Pesquisar</span> <span aria-hidden="true">→</span></button>
           </form>
