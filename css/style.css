@@ -129,10 +129,14 @@ h3 { font-family: var(--sans); }
 .query-label { display: block; grid-column: 1 / -1; margin-bottom: 0; font-size: 13px; font-weight: 700; }
 #query { display: block; grid-column: 1 / -1; width: 100%; min-width: 0; box-sizing: border-box; min-height: 48px; padding: 11px 14px; border: 1px solid var(--line); border-radius: 0; color: var(--ink); background: var(--page-surface); }
 #query::placeholder { color: var(--muted); opacity: 1; }
-.filters { display: grid; grid-column: 1; grid-template-columns: minmax(190px, 260px) auto; align-items: end; gap: 12px; min-width: 0; margin: 6px 0 0; padding: 0; border: 0; }
+.filters { display: grid; grid-column: 1; grid-template-columns: minmax(190px, 260px) minmax(250px, 1fr); align-items: end; gap: 12px; min-width: 0; margin: 6px 0 0; padding: 0; border: 0; }
 .filters legend { grid-column: 1 / -1; margin-bottom: 7px; padding: 0; color: var(--muted); font-size: 11px; font-weight: 700; }
 .period-field { grid-column: 1; }
-.custom-year-range { display: grid; grid-column: 2; grid-template-columns: repeat(2, minmax(125px, 170px)); align-items: end; gap: 12px; }
+.custom-year-range { display: grid; grid-column: 3; grid-template-columns: repeat(2, minmax(125px, 170px)); align-items: end; gap: 12px; }
+.open-access-group { grid-column: 1; align-self: start; }
+.open-access-field { display: flex; align-items: center; gap: 8px; min-height: 35px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.open-access-field input { width: 17px; height: 17px; flex: 0 0 auto; margin: 0; accent-color: var(--accent); }
+.filter-note { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
 .filter-field { display: grid; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 700; }
 .filter-field input, .filter-field select {
   box-sizing: border-box;
@@ -159,9 +163,14 @@ h3 { font-family: var(--sans); }
 .listing-toolbar { display: flex; align-items: end; justify-content: flex-end; gap: 16px; margin: 9px 0 7px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .listing-toolbar .filter-field { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .listing-toolbar #sort { min-width: 180px; }
+.listing-toolbar .publication-type-field { margin-right: auto; }
+.listing-toolbar #publication-type { min-width: 190px; }
 .references-dialog { box-sizing: border-box; width: min(760px, calc(100% - 32px)); max-width: none; max-height: min(84vh, 760px); margin: 24px auto auto; overflow: hidden; padding: 24px; border: 1px solid var(--line); color: var(--ink); background: var(--page-surface); box-shadow: 0 20px 70px rgb(14 24 22 / 28%); }
 .references-dialog[open] { display: flex; flex-direction: column; }
 .references-dialog::backdrop { background: rgb(15 23 27 / 58%); backdrop-filter: blur(2px); }
+.author-dialog { box-sizing: border-box; width: min(900px, calc(100% - 32px)); max-width: none; max-height: min(88vh, 820px); margin: 24px auto auto; overflow: hidden; padding: 24px; border: 1px solid var(--line); color: var(--ink); background: var(--page-surface); box-shadow: 0 20px 70px rgb(14 24 22 / 28%); }
+.author-dialog[open] { display: flex; flex-direction: column; }
+.author-dialog::backdrop { background: rgb(15 23 27 / 58%); backdrop-filter: blur(2px); }
 .references-dialog-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
 .references-dialog-heading .eyebrow { margin: 0; }
 .references-dialog-heading h2 { margin-top: 5px; font-size: clamp(1.8rem, 4vw, 2.3rem); }
@@ -223,9 +232,15 @@ h2 { margin: 4px 0 0; font-size: clamp(2rem, 3.4vw, 2.8rem); line-height: 1.05; 
 .author-card { display: flex; min-width: 0; flex-direction: column; align-items: start; padding: 15px 16px; border: 1px solid var(--line); background: var(--page-surface); }
 .author-rank { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
 .author-card h3 { width: 100%; margin: 7px 0; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.author-contact { display: flex; flex-wrap: wrap; gap: 5px 10px; margin: 0 0 10px; font-size: 10px; overflow-wrap: anywhere; }
+.author-contact a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.author-contact .author-email { color: var(--ink); }
+.author-contact:empty { display: none; }
 .author-metrics { min-height: 18px; margin: 0 0 11px; color: var(--muted); font-size: 10px; }
 .author-results { margin-top: auto; padding: 0; border: 0; color: var(--ink); background: none; font-size: 10px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .author-results:hover { text-decoration-thickness: 2px; }
+.author-publications { display: grid; min-height: 0; flex: 1 1 auto; gap: 9px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+.author-papers-empty { margin: 0; padding: 22px 16px; border: 1px solid var(--line); color: var(--muted); background: var(--research-surface); font-size: 12px; }
 .authors-more { display: block; margin-top: 14px; }
 .empty-state { padding: 28px 18px; border: 1px solid var(--line); background: var(--page-surface); }
 .empty-state h3 { margin: 0 0 5px; font-size: 15px; }
@@ -264,6 +279,7 @@ footer { border-top: 1px solid var(--line); }
   .filters { grid-template-columns: minmax(0, 1fr); gap: 9px; }
   .period-field { width: 100%; }
   .custom-year-range { grid-column: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: 9px; }
+  .open-access-group { grid-column: 1; }
   .filter-field { gap: 3px; }
   #search-button { width: 100%; padding-inline: 11px; }
   .results { padding-block: 80px; }
@@ -272,8 +288,11 @@ footer { border-top: 1px solid var(--line); }
   .count { padding-top: 7px; text-align: left; }
   .listing-toolbar { align-items: stretch; flex-direction: column; gap: 12px; }
   .listing-toolbar .filter-field { width: 100%; justify-content: space-between; }
+  .listing-toolbar .publication-type-field { margin-right: 0; }
+  .listing-toolbar #publication-type { min-width: 0; width: min(58%, 220px); }
   .listing-toolbar #sort { min-width: 0; width: min(58%, 220px); }
   .references-dialog { width: calc(100% - 20px); max-height: calc(100dvh - 20px); margin-top: 10px; padding: 18px 14px; }
+  .author-dialog { width: calc(100% - 20px); max-height: calc(100dvh - 20px); margin-top: 10px; padding: 18px 14px; }
   .references-dialog .reference-list-toolbar { align-items: stretch; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
   .references-dialog .export-choice { flex: 1 1 125px; justify-content: space-between; }
   .references-dialog #export-format { min-width: 88px; width: 88px; }

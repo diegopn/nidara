@@ -61,12 +61,28 @@ export function mergeWorks(existing, incoming) {
   for (const field of ["authors", "year", "journal", "type", "abstract", "doi", "url", "openAccess", "citations"]) {
     if (isEmpty(merged[field]) && !isEmpty(incoming[field])) merged[field] = incoming[field];
   }
+  merged.authors = [...new Set([...(existing.authors || []), ...(incoming.authors || [])].filter(name => typeof name === "string" && name.trim()))];
+  merged.authorProfiles = mergeAuthorProfiles(existing.authorProfiles, incoming.authorProfiles);
   if (incoming.openAccess === true) merged.openAccess = true;
   if (Number.isFinite(incoming.citations)) merged.citations = Math.max(merged.citations || 0, incoming.citations);
   merged.sources = [...new Map([...(existing.sources || []), ...(incoming.sources || [])].map(source => [source.id, source])).values()];
   merged.provenance = { ...(incoming.provenance || {}), ...(existing.provenance || {}) };
   if (title && title !== existing.title && incoming.provenance?.title) merged.provenance.title = incoming.provenance.title;
   return merged;
+}
+
+function mergeAuthorProfiles(...groups) {
+  const profiles = new Map();
+  for (const profile of groups.flat()) {
+    if (!profile || typeof profile.name !== "string" || !profile.name.trim()) continue;
+    const key = profile.name.trim().replace(/\s+/g, " ").normalize("NFKC").toLocaleLowerCase();
+    const merged = profiles.get(key) || { name: profile.name.trim(), profileUrl: "", orcid: "", email: "" };
+    for (const field of ["profileUrl", "orcid", "email"]) {
+      if (!merged[field] && typeof profile[field] === "string" && profile[field].trim()) merged[field] = profile[field].trim();
+    }
+    profiles.set(key, merged);
+  }
+  return [...profiles.values()];
 }
 
 export function deduplicateWorks(works) {

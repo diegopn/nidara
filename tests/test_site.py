@@ -170,7 +170,7 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIsNotNone(clear_search)
         self.assertIn('navigation?.type !== "reload"', clear_search.group(1))
         self.assertIn('queryInput.value = ""', clear_search.group(1))
-        self.assertIn('["q", "from", "to", "period", "type", "sort", "sources", "view", "author"]', clear_search.group(1))
+        self.assertIn('["q", "from", "to", "period", "type", "pubType", "oa", "sort", "sources", "view", "author"]', clear_search.group(1))
         self.assertIn("url.searchParams.delete(key)", clear_search.group(1))
         self.assertRegex(self.app, r"const reloaded = clearSearchFromUrlOnReload\(\);[\s\S]*?if \(!reloaded\) filtersFromUrl\(\);")
 
@@ -322,6 +322,30 @@ class SiteIntegrityTests(unittest.TestCase):
         }
         for locale, values in messages.items():
             self.assertEqual(tuple(values[key] for key in ("periodAll", "periodLast1Year", "periodLast2Years", "periodLast5Years", "periodLast10Years", "periodCustom")), expected[locale])
+
+    def test_search_has_open_access_and_publication_type_filters(self):
+        self.assertIn('id="open-access-only"', self.html)
+        self.assertIn('id="publication-type"', self.html)
+        self.assertIn('id="publication-type-field"', self.html)
+        self.assertIn('openAccessOnly: openAccessInput.checked', self.app)
+        self.assertIn('type: activeView === "datasets" ? "dataset" : activeFilters.publicationType', self.app)
+
+    def test_authors_show_available_profiles_and_open_relevant_publications_in_a_dialog(self):
+        for element_id in ("author-dialog", "author-dialog-title", "author-dialog-description", "author-publications"):
+            self.assertIn(f'id="{element_id}"', self.html)
+        self.assertIn("authorDialog.showModal()", self.app)
+        self.assertIn("worksForAuthor", self.app)
+        author_utils = (ROOT / "js/core/author-utils.js").read_text(encoding="utf-8")
+        self.assertIn("authorProfiles", author_utils)
+        translations = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
+        for key in ("authorProfile", "authorOrcid", "authorOpenAlex", "authorPapersFor", "authorPapersCount", "closeAuthorPapers"):
+            self.assertTrue(all(key in locale for locale in translations.values()), key)
+
+    def test_saving_a_modal_reference_preserves_the_author_button_for_focus_return(self):
+        toggle = re.search(r"function toggleFavorite\(work\) \{([\s\S]*?)\n\}", self.app)
+        self.assertIsNotNone(toggle)
+        self.assertIn("if (!authorDialog.open) renderCurrentItems()", toggle.group(1))
+        self.assertIn("authorDialogTrigger?.isConnected", self.app)
 
     def test_desktop_sort_control_is_right_aligned_and_stays_on_one_line(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")

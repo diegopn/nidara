@@ -4,7 +4,7 @@ const ENDPOINT = "https://api.openalex.org/works";
 const PAGE_SIZE = 15;
 const TYPES = { article: "article", preprint: "preprint", dataset: "dataset", book: "book" };
 
-export async function searchWorks({ query, yearFrom, yearTo, fromDate, toDate, type = "all", sort = "relevance", page = 1, signal }) {
+export async function searchWorks({ query, yearFrom, yearTo, fromDate, toDate, type = "all", openAccessOnly = false, sort = "relevance", page = 1, signal }) {
   const url = new URL(ENDPOINT);
   url.searchParams.set("search", query);
   url.searchParams.set("per_page", String(PAGE_SIZE));
@@ -15,6 +15,7 @@ export async function searchWorks({ query, yearFrom, yearTo, fromDate, toDate, t
   if (fromDate || yearFrom) filters.push("from_publication_date:" + (fromDate || yearFrom + "-01-01"));
   if (toDate || yearTo) filters.push("to_publication_date:" + (toDate || yearTo + "-12-31"));
   if (TYPES[type]) filters.push("type:" + TYPES[type]);
+  if (openAccessOnly) filters.push("open_access.is_oa:true");
   if (filters.length) url.searchParams.set("filter", filters.join(","));
   if (sort === "newest") url.searchParams.set("sort", "publication_date:desc");
   if (sort === "cited") url.searchParams.set("sort", "cited_by_count:desc");
@@ -37,13 +38,24 @@ export async function searchWorks({ query, yearFrom, yearTo, fromDate, toDate, t
   return { total, items, hasMore: page * PAGE_SIZE < total && items.length > 0 };
 }
 
-function normalizeWork(work) {
+export function normalizeWork(work) {
   const doi = normalizeDoi(work.doi);
   const openAlexUrl = safeExternalUrl(work.id);
   const url = doi
     ? "https://doi.org/" + doi
     : safeExternalUrl(work.primary_location?.landing_page_url) || openAlexUrl;
   const authors = (work.authorships || []).slice(0, 8).map(entry => entry.author?.display_name).filter(Boolean);
+  const authorProfiles = (work.authorships || []).slice(0, 8).map(entry => {
+    const author = entry.author || {};
+    const name = typeof author.display_name === "string" ? author.display_name.trim() : "";
+    if (!name) return null;
+    return {
+      name,
+      profileUrl: safeExternalUrl(author.id),
+      orcid: safeExternalUrl(author.orcid || entry.raw_orcid),
+      email: ""
+    };
+  }).filter(Boolean);
   const journal = work.primary_location?.source?.display_name || "";
 
   return {
@@ -51,6 +63,7 @@ function normalizeWork(work) {
     providerId: "openalex",
     title: selectWorkTitle(work.display_name),
     authors,
+    authorProfiles,
     year: normalizePublicationYear(work.publication_year),
     journal,
     type: typeof work.type === "string" ? work.type : "",

@@ -28,3 +28,9 @@ class CoreBehaviorTests(unittest.TestCase):
 
     def test_publication_periods_calculate_relative_and_custom_dates(self):
         self.run_node_test("periods.test.mjs")
+
+    def test_author_profiles_and_theme_matched_publications(self):
+        self.run_node_test("authors.test.mjs")
+
+    def test_open_access_and_publication_type_search_filters(self):
+        self.run_node_test("search-filters.test.mjs")

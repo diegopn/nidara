@@ -1,5 +1,6 @@
 import { exportWorks } from "./core/export.js";
 import { federatedSearch } from "./core/federated-search.js";
+import { summarizeAuthors as summarizeAuthorRecords, worksForAuthor } from "./core/author-utils.js";
 import { formatNumber, getLanguage, pluralMessage, setLanguage, t } from "./core/i18n.js";
 import { publicationDateRange } from "./core/period-utils.js";
 import { mergeResultCounts } from "./core/result-counts.js";
@@ -11,11 +12,13 @@ const DEFAULT_SOURCES = ["openalex", "crossref"];
 const form = document.querySelector("#search-form");
 const queryInput = document.querySelector("#query");
 const periodInput = document.querySelector("#period-range");
+const openAccessInput = document.querySelector("#open-access-only");
 const customYearRange = document.querySelector("#custom-year-range");
 const yearFromInput = document.querySelector("#year-from");
 const yearToInput = document.querySelector("#year-to");
 const sortSelect = document.querySelector("#sort");
-const listingToolbar = document.querySelector("#listing-toolbar");
+const publicationTypeSelect = document.querySelector("#publication-type");
+const publicationTypeField = document.querySelector("#publication-type-field");
 const list = document.querySelector("#results-list");
 const status = document.querySelector("#status");
 const title = document.querySelector("#results-title");
@@ -31,7 +34,6 @@ const referencesEmpty = document.querySelector("#references-empty");
 const referencesList = document.querySelector("#references-list");
 const referencesClear = document.querySelector("#references-clear");
 const exportCount = document.querySelector("#export-count");
-const resultTabs = document.querySelector("#result-tabs");
 const exportButton = document.querySelector("#export-button");
 const exportFormat = document.querySelector("#export-format");
 const languageSwitcher = document.querySelector("#language-switcher");
@@ -39,6 +41,12 @@ const viewTabs = [...document.querySelectorAll(".result-tab")];
 const viewNote = document.querySelector("#view-note");
 const authorsScope = document.querySelector("#authors-scope");
 const authorsMore = document.querySelector("#authors-more");
+const authorDialog = document.querySelector("#author-dialog");
+const authorDialogTitle = document.querySelector("#author-dialog-title");
+const authorDialogDescription = document.querySelector("#author-dialog-description");
+const authorDialogCount = document.querySelector("#author-dialog-count");
+const authorDialogClose = document.querySelector("#author-dialog-close");
+const authorPublications = document.querySelector("#author-publications");
 const viewCounts = {
   publications: document.querySelector("#publications-count"),
   authors: document.querySelector("#authors-count"),
@@ -57,6 +65,7 @@ let viewResultCounts = { publications: null, authors: null, datasets: null };
 let activeView = "publications";
 let selectedAuthor = "";
 let showAllAuthors = false;
+let authorDialogTrigger = null;
 
 function element(tag, className, value) {
   const node = document.createElement(tag);
@@ -179,25 +188,7 @@ function authorKey(name) {
 }
 
 function summarizeAuthors(works) {
-  const authors = new Map();
-  for (const work of works) {
-    const namesInWork = new Set();
-    for (const rawName of work.authors || []) {
-      const name = typeof rawName === "string" ? rawName.trim().replace(/\s+/g, " ") : "";
-      const key = authorKey(name);
-      if (!key || namesInWork.has(key)) continue;
-      namesInWork.add(key);
-      const author = authors.get(key) || { name, records: 0, citations: 0, citationRecords: 0 };
-      author.records += 1;
-      if (Number.isFinite(work.citations)) {
-        author.citations += work.citations;
-        author.citationRecords += 1;
-      }
-      authors.set(key, author);
-    }
-  }
-  return [...authors.values()].sort((a, b) =>
-    b.records - a.records || b.citations - a.citations || a.name.localeCompare(b.name, getLanguage()));
+  return summarizeAuthorRecords(works, getLanguage());
 }
 
 function updateViewControls(publications, authors) {
@@ -219,6 +210,7 @@ function updateViewControls(publications, authors) {
   authorsScope.textContent = t("authorScope", {
     count: formatNumber(publications.length)
   });
+  publicationTypeField.hidden = activeView === "datasets";
   const loadMoreLabel = more.querySelector("[data-i18n]");
   if (loadMoreLabel) loadMoreLabel.textContent = t(activeView === "authors" ? "loadMoreAuthors" : "loadMore");
 }
@@ -243,6 +235,21 @@ function renderAuthors(authors) {
     const card = element("article", "author-card");
     card.append(element("span", "author-rank", String(index + 1).padStart(2, "0")));
     card.append(element("h3", null, author.name));
+    const contact = element("div", "author-contact");
+    for (const email of author.emails) {
+      const link = element("a", "author-email", email);
+      link.href = "mailto:" + email;
+      contact.append(link);
+    }
+    for (const profile of author.links) {
+      const labelKey = profile.label === "ORCID" ? "authorOrcid" : profile.label === "OpenAlex" ? "authorOpenAlex" : "authorProfile";
+      const link = element("a", "author-profile", t(labelKey));
+      link.href = profile.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      contact.append(link);
+    }
+    if (contact.childElementCount) card.append(contact);
     const records = pluralMessage("authorWorkCount", author.records);
     const citations = author.citationRecords
       ? pluralMessage("citationCount", author.citations)
@@ -250,15 +257,9 @@ function renderAuthors(authors) {
     card.append(element("p", "author-metrics", `${records} · ${citations}`));
     const button = element("button", "author-results", t("openAuthorResults"));
     button.type = "button";
-    button.addEventListener("click", () => {
-      selectedAuthor = author.name;
-      activeView = "publications";
-      showAllAuthors = false;
-      updateShareUrl(activeFilters);
-      renderCurrentItems();
-      setStatus(t("searchResultsStatus"));
-      title.focus?.();
-    });
+    button.setAttribute("aria-haspopup", "dialog");
+    button.setAttribute("aria-controls", "author-dialog");
+    button.addEventListener("click", () => openAuthorDialog(author, button));
     card.append(button);
     grid.append(card);
   }
@@ -308,19 +309,23 @@ function renderCurrentItems() {
       : !activeFilters
         ? t("initialTitle")
         : t({ publications: "publicationsFor", authors: "authorsFor", datasets: "datasetsFor" }[activeView], { query: activeFilters.query });
+  const total = totalMatches();
   count.textContent = selectedAuthor
       ? t("authorWorksCount", { name: selectedAuthor, count: formatNumber(works.length) })
       : activeView === "authors"
         ? t("authorResultsCount", { authors: formatNumber(authors.length), records: formatNumber(publications.length) })
         : works.length
-          ? t("loadedCount", { loaded: formatNumber(works.length), total: formatNumber(totalMatches()) })
+          ? Number.isFinite(total)
+            ? t("loadedCount", { loaded: formatNumber(works.length), total: formatNumber(total) })
+            : t("showingCountOnly", { loaded: formatNumber(works.length) })
           : "";
   exportButton.disabled = favorites.size === 0;
   more.hidden = !Object.values(providerProgress).some(progress => progress.hasMore);
 }
 
 function totalMatches() {
-  return Object.values(providerTotals).reduce((sum, value) => sum + value, 0);
+  const totals = Object.values(providerTotals);
+  return totals.length && totals.every(Number.isFinite) ? totals.reduce((sum, value) => sum + value, 0) : null;
 }
 
 function typeLabel(type) {
@@ -360,7 +365,13 @@ function resultCard(work) {
   save.type = "button";
   save.setAttribute("aria-pressed", String(saved));
   save.setAttribute("aria-label", t(saved ? "removeFromCart" : "addToCartLabel", { title: workTitle }));
-  save.addEventListener("click", () => toggleFavorite(work));
+  save.addEventListener("click", () => {
+    toggleFavorite(work);
+    const isSaved = favorites.has(key);
+    save.textContent = isSaved ? t("inCart") : t("addToCart");
+    save.setAttribute("aria-pressed", String(isSaved));
+    save.setAttribute("aria-label", t(isSaved ? "removeFromCart" : "addToCartLabel", { title: workTitle }));
+  });
   article.append(headingRow);
 
   const details = [
@@ -394,6 +405,30 @@ function resultCard(work) {
   return article;
 }
 
+function openAuthorDialog(author, trigger) {
+  const works = worksForAuthor(publicationItems(loadedItems), author.name, getLanguage());
+  const visibleWorks = works.slice(0, 10);
+  authorDialogTrigger = trigger;
+  authorDialogTitle.textContent = t("worksByAuthor", { name: author.name });
+  authorDialogDescription.textContent = activeFilters
+    ? t("authorPapersFor", { query: activeFilters.query })
+    : t("authorPapersGeneral");
+  authorDialogCount.textContent = t("authorPapersCount", {
+    shown: formatNumber(visibleWorks.length),
+    count: formatNumber(works.length)
+  });
+  authorPublications.replaceChildren();
+
+  if (visibleWorks.length) {
+    for (const work of visibleWorks) authorPublications.append(resultCard(work));
+  } else {
+    authorPublications.append(element("p", "author-papers-empty", t("authorPapersEmpty")));
+  }
+
+  authorDialog.showModal();
+  authorDialogClose.focus();
+}
+
 function toggleFavorite(work) {
   const nextFavorites = new Map(favorites);
   const key = workKey(work);
@@ -406,7 +441,7 @@ function toggleFavorite(work) {
   const persisted = persistFavorites(nextFavorites);
   favorites = nextFavorites;
   refreshSavedCount();
-  renderCurrentItems();
+  if (!authorDialog.open) renderCurrentItems();
   if (!persisted) setStatus(t("storageFailure"));
   else setStatus(t(removing ? "removedFromCart" : "addedToCart"));
 }
@@ -448,6 +483,8 @@ function readFiltersFromForm() {
     period,
     yearFrom,
     yearTo,
+    openAccessOnly: openAccessInput.checked,
+    publicationType: publicationTypeSelect.value,
     ...publicationDateRange(period, yearFrom, yearTo),
     sort: sortSelect.value,
     sourceIds: [...DEFAULT_SOURCES]
@@ -467,11 +504,13 @@ function updateShareUrl(filters) {
   if (!filters) return;
   const url = new URL(location.href);
   url.hash = "";
-  for (const key of ["q", "from", "to", "period", "type", "sort", "sources", "view", "author"]) url.searchParams.delete(key);
+  for (const key of ["q", "from", "to", "period", "type", "pubType", "oa", "sort", "sources", "view", "author"]) url.searchParams.delete(key);
   url.searchParams.set("q", filters.query);
   if (filters.period !== "all") url.searchParams.set("period", filters.period);
   if (filters.period === "custom" && filters.yearFrom) url.searchParams.set("from", filters.yearFrom);
   if (filters.period === "custom" && filters.yearTo) url.searchParams.set("to", filters.yearTo);
+  if (filters.publicationType !== "all") url.searchParams.set("pubType", filters.publicationType);
+  if (filters.openAccessOnly) url.searchParams.set("oa", "1");
   if (filters.sort !== "relevance") url.searchParams.set("sort", filters.sort);
   if (activeView !== "publications") url.searchParams.set("view", activeView);
   if (selectedAuthor) url.searchParams.set("author", selectedAuthor);
@@ -491,6 +530,9 @@ function filtersFromUrl() {
     ? period
     : yearFromInput.value || yearToInput.value ? "custom" : "all";
   updateCustomYearRange();
+  const publicationType = url.searchParams.get("pubType");
+  publicationTypeSelect.value = ["all", "article", "preprint", "book"].includes(publicationType) ? publicationType : "all";
+  openAccessInput.checked = url.searchParams.get("oa") === "1";
   const view = url.searchParams.get("view");
   activeView = ["publications", "authors", "datasets"].includes(view)
     ? view
@@ -506,7 +548,7 @@ function clearSearchFromUrlOnReload() {
   if (navigation?.type !== "reload") return false;
   queryInput.value = "";
   const url = new URL(location.href);
-  for (const key of ["q", "from", "to", "period", "type", "sort", "sources", "view", "author"]) url.searchParams.delete(key);
+  for (const key of ["q", "from", "to", "period", "type", "pubType", "oa", "sort", "sources", "view", "author"]) url.searchParams.delete(key);
   history.replaceState(null, "", url);
   return true;
 }
@@ -532,6 +574,8 @@ function resultStatus(result, append) {
   } else if (failed.length) {
     const details = failed.map(source => source.label + ": " + errorMessage(source.error)).join("; ");
     setStatus(t("partialResponse", { available: available.join(getLanguage() === "en" ? " and " : getLanguage() === "es" ? " y " : " e "), details }));
+  } else if (!loadedItems.length && activeFilters?.openAccessOnly && Object.values(providerProgress).some(progress => progress.hasMore)) {
+    setStatus(t("openAccessMoreToCheck"));
   } else if (!loadedItems.length) {
     setStatus(t("noResults"));
   } else {
@@ -557,7 +601,7 @@ async function runSearch(append = false) {
   controller = new AbortController();
   const signal = controller.signal;
   const currentRequest = ++requestId;
-  const searchFilters = { ...activeFilters, type: activeView === "datasets" ? "dataset" : "all" };
+  const searchFilters = { ...activeFilters, type: activeView === "datasets" ? "dataset" : activeFilters.publicationType };
 
   if (!append) {
     loadedItems = [];
@@ -643,6 +687,12 @@ for (const tab of viewTabs) {
 sortSelect.addEventListener("change", () => {
   if (activeFilters) form.requestSubmit();
 });
+publicationTypeSelect.addEventListener("change", () => {
+  if (activeFilters) form.requestSubmit();
+});
+openAccessInput.addEventListener("change", () => {
+  if (activeFilters) form.requestSubmit();
+});
 periodInput.addEventListener("change", updateCustomYearRange);
 savedToggle.addEventListener("click", openReferencesDialog);
 referencesClear.addEventListener("click", clearReferenceList);
@@ -650,6 +700,10 @@ referencesDialogClose.addEventListener("click", () => referencesDialog.close());
 referencesDialog.addEventListener("close", () => {
   savedToggle.setAttribute("aria-expanded", "false");
   savedToggle.focus();
+});
+authorDialogClose.addEventListener("click", () => authorDialog.close());
+authorDialog.addEventListener("close", () => {
+  if (authorDialogTrigger?.isConnected) authorDialogTrigger.focus();
 });
 exportButton.addEventListener("click", () => {
   try {

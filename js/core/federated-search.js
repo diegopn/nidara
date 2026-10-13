@@ -23,14 +23,16 @@ export async function federatedSearch({ filters, pages, sourceIds, signal }) {
   return {
     sources,
     items,
-    total: successful.reduce((sum, source) => sum + source.result.total, 0),
+    total: successful.every(source => Number.isFinite(source.result.total))
+      ? successful.reduce((sum, source) => sum + source.result.total, 0)
+      : null,
     hasMore: successful.some(source => source.result.hasMore),
     rawCount: rawItems.length
   };
 }
 
 async function cachedSearch(provider, filters, signal) {
-  const key = JSON.stringify({ provider: provider.id, query: filters.query, fromDate: filters.fromDate, toDate: filters.toDate, type: filters.type, sort: filters.sort, page: filters.page });
+  const key = JSON.stringify({ provider: provider.id, query: filters.query, fromDate: filters.fromDate, toDate: filters.toDate, type: filters.type, openAccessOnly: filters.openAccessOnly, sort: filters.sort, page: filters.page });
   const now = Date.now();
   const cached = responseCache.get(key);
   if (cached && cached.expiresAt > now) return cached.value;

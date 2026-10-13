@@ -70,6 +70,13 @@
                 <label class="filter-field" for="year-from"><span data-i18n="yearFrom">Ano inicial</span><input id="year-from" name="from" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder" disabled></label>
                 <label class="filter-field" for="year-to"><span data-i18n="yearTo">Ano final</span><input id="year-to" name="to" type="number" min="1900" max="2100" inputmode="numeric" placeholder="Ano" data-i18n-placeholder="yearPlaceholder" disabled></label>
               </div>
+              <div class="open-access-group">
+                <label class="open-access-field" for="open-access-only">
+                  <input id="open-access-only" name="openAccessOnly" type="checkbox" aria-describedby="open-access-note">
+                  <span data-i18n="openAccessOnly">Somente acesso aberto</span>
+                </label>
+                <p class="filter-note" id="open-access-note" data-i18n="openAccessFilterNote">Com base nos metadados da fonte; a disponibilidade de link direto pode variar.</p>
+              </div>
             </fieldset>
             <button id="search-button" type="submit"><span data-i18n="searchButton">Pesquisar</span> <span aria-hidden="true">→</span></button>
           </form>
@@ -92,6 +99,14 @@
           <button class="result-tab" id="datasets-tab" type="button" role="tab" aria-selected="false" aria-controls="results-list" data-view="datasets" tabindex="-1"><span data-i18n="datasetsTab">Datasets</span><span class="tab-count" id="datasets-count">0</span></button>
         </nav>
         <div class="listing-toolbar" id="listing-toolbar">
+          <label class="filter-field publication-type-field" id="publication-type-field" for="publication-type"><span data-i18n="publicationTypeFilter">Tipo de publicação</span>
+            <select id="publication-type" name="pubType">
+              <option value="all" data-i18n="allPublicationTypes" selected>Todos os tipos</option>
+              <option value="article" data-i18n="typeArticleFilter">Artigos</option>
+              <option value="preprint" data-i18n="typePreprintFilter">Preprints</option>
+              <option value="book" data-i18n="typeBookFilter">Livros e capítulos</option>
+            </select>
+          </label>
           <label class="filter-field" for="sort"><span data-i18n="sortBy">Ordenar por</span>
             <select id="sort" name="sort">
               <option value="relevance" data-i18n="sortRelevance">Relevância</option>
@@ -109,6 +124,19 @@
       </div>
     </section>
   </main>
+
+  <dialog class="author-dialog" id="author-dialog" aria-labelledby="author-dialog-title" aria-describedby="author-dialog-description">
+    <div class="references-dialog-heading">
+      <div>
+        <p class="eyebrow" data-i18n="authorPapersEyebrow">Publicações do autor</p>
+        <h2 id="author-dialog-title" data-i18n="authorPapersTitle">Principais publicações</h2>
+      </div>
+      <button class="references-dialog-close" id="author-dialog-close" type="button" aria-label="Fechar publicações" data-i18n-aria-label="closeAuthorPapers">×</button>
+    </div>
+    <p class="references-dialog-description" id="author-dialog-description"></p>
+    <p class="references-dialog-count" id="author-dialog-count" aria-live="polite"></p>
+    <div class="author-publications" id="author-publications" aria-live="polite"></div>
+  </dialog>
 
   <dialog class="references-dialog" id="references-dialog" aria-labelledby="references-dialog-title" aria-describedby="references-dialog-description">
     <div class="references-dialog-heading">
