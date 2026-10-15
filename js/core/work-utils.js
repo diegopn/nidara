@@ -45,6 +45,58 @@ export function safeExternalUrl(value) {
   }
 }
 
+export function authorIdentityKey(person, locale = "en") {
+  const orcid = normalizedOrcid(person);
+  if (orcid) return "orcid:" + orcid;
+  const profileUrl = normalizedProfileUrl(person);
+  if (profileUrl) return "profile:" + profileUrl;
+  const name = authorName(person);
+  return name ? "name:" + name.toLocaleLowerCase(locale) : "";
+}
+
+export function sameAuthorIdentity(first, second, locale = "en") {
+  const firstOrcid = normalizedOrcid(first);
+  const secondOrcid = normalizedOrcid(second);
+  if (firstOrcid && secondOrcid) return firstOrcid === secondOrcid;
+
+  const firstProfile = normalizedProfileUrl(first);
+  const secondProfile = normalizedProfileUrl(second);
+  if (firstProfile && secondProfile) return firstProfile === secondProfile;
+  if (firstOrcid || secondOrcid || firstProfile || secondProfile) return false;
+
+  const firstName = authorName(first);
+  const secondName = authorName(second);
+  if (!firstName || !secondName || firstName.toLocaleLowerCase(locale) !== secondName.toLocaleLowerCase(locale)) return false;
+  return true;
+}
+
+function normalizedOrcid(person) {
+  const values = typeof person === "string" ? [] : [person?.orcid, person?.profileUrl];
+  for (const value of values) {
+    const url = safeExternalUrl(value);
+    if (!url) continue;
+    const parsed = new URL(url);
+    if (parsed.hostname.toLowerCase().replace(/^www\./, "") === "orcid.org") {
+      return parsed.pathname.replace(/^\/+|\/+$/g, "").toLowerCase();
+    }
+  }
+  return "";
+}
+
+function normalizedProfileUrl(person) {
+  if (typeof person === "string") return "";
+  const url = safeExternalUrl(person?.profileUrl);
+  if (!url) return "";
+  const parsed = new URL(url);
+  if (parsed.hostname.toLowerCase().replace(/^www\./, "") === "orcid.org") return "";
+  return (parsed.hostname + parsed.pathname.replace(/\/+$/, "")).toLowerCase();
+}
+
+function authorName(person) {
+  const value = typeof person === "string" ? person : person?.name;
+  return typeof value === "string" ? value.trim().replace(/\s+/g, " ").normalize("NFKC") : "";
+}
+
 export function workKey(work) {
   const doi = normalizeDoi(work.doi);
   if (doi) return "doi:" + doi;
@@ -124,19 +176,18 @@ function datasetMetadataKey(field, item) {
   return String(identity || JSON.stringify(item)).trim().toLocaleLowerCase();
 }
 
-
 function mergeAuthorProfiles(...groups) {
-  const profiles = new Map();
+  const profiles = [];
   for (const profile of groups.flat()) {
     if (!profile || typeof profile.name !== "string" || !profile.name.trim()) continue;
-    const key = profile.name.trim().replace(/\s+/g, " ").normalize("NFKC").toLocaleLowerCase();
-    const merged = profiles.get(key) || { name: profile.name.trim(), profileUrl: "", orcid: "", email: "" };
+    const existing = profiles.find(candidate => sameAuthorIdentity(candidate, profile));
+    const merged = existing || { name: profile.name.trim(), profileUrl: "", orcid: "", email: "" };
     for (const field of ["profileUrl", "orcid", "email"]) {
       if (!merged[field] && typeof profile[field] === "string" && profile[field].trim()) merged[field] = profile[field].trim();
     }
-    profiles.set(key, merged);
+    if (!existing) profiles.push(merged);
   }
-  return [...profiles.values()];
+  return profiles;
 }
 
 export function deduplicateWorks(works) {

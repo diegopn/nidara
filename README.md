@@ -12,9 +12,9 @@ O idioma selecionado aparece no endereço da página. Links compartilhados prese
 
 ## Pesquisa
 
-- Consulta OpenAlex e Crossref em paralelo, com indicação das fontes e de eventuais respostas parciais.
+- Consulta OpenAlex e Crossref para publicações e autores, e DataCite para conjuntos de dados, com indicação de respostas parciais.
 - Filtros por intervalo de anos e tipo de publicação, ordenação e paginação.
-- Deduplicação por DOI sem combinar publicações que só tenham títulos parecidos.
+- Deduplicação por DOI sem combinar publicações que só tenham títulos parecidos. Os totais das fontes podem incluir registros repetidos entre catálogos.
 - Itens salvos neste navegador e exportação BibTeX, RIS ou CSV.
 - Tema claro ou escuro e layout adaptado a telas pequenas.
 
@@ -30,6 +30,7 @@ O código está sob a [licença MIT](LICENSE), que permite uso, modificação, r
 
 - [OpenAlex](https://docs.openalex.org/): catálogo bibliográfico consultado pela API pública; o acesso sem chave pode atingir o limite disponível.
 - [Crossref](https://www.crossref.org/documentation/retrieve-metadata/rest-api/): metadados públicos de trabalhos registrados, com cobertura variável conforme a publicação.
+- [DataCite](https://support.datacite.org/docs/api): metadados públicos de conjuntos de dados, incluindo licenças, formatos, financiamento e relações. Os filtros por período enviados à API têm precisão de ano; links diretos a arquivos só são mostrados quando a fonte fornece um.
 
 Os metadados e resumos são fornecidos pelas fontes. Confira a publicação original para validar completude, disponibilidade e licença. Itens salvos permanecem no armazenamento local do navegador.
 

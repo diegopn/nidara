@@ -3,6 +3,8 @@
 
 import argparse
 import hashlib
+import html
+import json
 import re
 import shutil
 from pathlib import Path
@@ -11,6 +13,8 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL = re.compile(r'(<link rel="canonical" href=")[^"]+(">)')
+TITLE = re.compile(r"<title>.*?</title>", re.DOTALL)
+DESCRIPTION = re.compile(r'(<meta name="description" content=")[^"]+(">)')
 MODULE_IMPORT = re.compile(r'(?P<prefix>\b(?:from|import)\s*)(?P<quote>["\'])(?P<specifier>(?:\.\.?/)[^"\']+)(?P=quote)')
 
 
@@ -40,6 +44,7 @@ def build_site(output: Path) -> None:
     if output != (ROOT / "dist").resolve():
         raise ValueError("The output directory must be the repository's dist directory.")
     source = (ROOT / "index.html").read_text(encoding="utf-8")
+    messages = json.loads((ROOT / "js/core/translations.json").read_text(encoding="utf-8"))
     version = build_version(source)
     canonical_match = CANONICAL.search(source)
     if not canonical_match:
@@ -62,6 +67,18 @@ def build_site(output: Path) -> None:
         page = source.replace('<html lang="pt-BR">', f'<html lang="{locale}">', 1)
         locale_path = "" if locale == "pt-BR" else locale.lower() + "/"
         page = CANONICAL.sub(rf'\1https://diegopn.github.io{base_path}{locale_path}\2', page, count=1)
+        page = TITLE.sub(f'<title>{html.escape(messages[locale]["documentTitle"])}</title>', page, count=1)
+        page = DESCRIPTION.sub(
+            lambda match: match.group(1) + html.escape(messages[locale]["description"], quote=True) + match.group(2),
+            page,
+            count=1,
+        )
+        alternates = []
+        for target in ("pt-BR", "en", "es"):
+            target_path = "" if target == "pt-BR" else target.lower() + "/"
+            alternates.append(f'<link rel="alternate" hreflang="{target}" href="https://diegopn.github.io{base_path}{target_path}">')
+        alternates.append(f'<link rel="alternate" hreflang="x-default" href="https://diegopn.github.io{base_path}">')
+        page = page.replace("</head>", "  " + "\n  ".join(alternates) + "\n</head>", 1)
         for target in ("pt-BR", "en", "es"):
             if target == locale:
                 relative_path = "./"

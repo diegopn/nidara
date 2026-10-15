@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { normalizeWork, searchWorks } from "../js/providers/datacite.js";
 import { normalizeWork as normalizeCrossrefWork } from "../js/providers/crossref.js";
 import { normalizeWork as normalizeOpenAlexWork } from "../js/providers/openalex.js";
-import { filterDatasets, datasetFilterOptions } from "../js/core/dataset-utils.js";
+import { filterDatasets, datasetComparisonRows, datasetFilterOptions, hasRelatedPublication, rankDatasets } from "../js/core/dataset-utils.js";
 import { federatedSearch } from "../js/core/federated-search.js";
 import { mergeWorks } from "../js/core/work-utils.js";
 
@@ -19,7 +19,11 @@ const sourceRecord = {
       affiliation: [{ name: "University of São Paulo" }],
       nameIdentifiers: [{ nameIdentifier: "https://orcid.org/0000-0001-2345-6789", nameIdentifierScheme: "ORCID" }]
     }],
-    descriptions: [{ descriptionType: "Abstract", description: "Hourly PM2.5 measurements collected in São Paulo." }],
+    descriptions: [
+      { descriptionType: "Abstract", description: "Hourly PM2.5 measurements collected in São Paulo." },
+      { descriptionType: "Methods", description: "Sensors were calibrated before hourly sampling." },
+      { descriptionType: "TechnicalInfo", description: "Each row is one hourly observation; PM2.5 is measured in µg/m³." }
+    ],
     rightsList: [{
       rights: "Creative Commons Attribution 4.0",
       rightsUri: "https://creativecommons.org/licenses/by/4.0/",
@@ -62,6 +66,8 @@ assert.deepEqual(work.datasetMetadata, {
   publisher: "Zenodo",
   resourceType: "Air quality measurements",
   description: "Hourly PM2.5 measurements collected in São Paulo.",
+  methods: ["Sensors were calibrated before hourly sampling."],
+  technicalInfo: ["Each row is one hourly observation; PM2.5 is measured in µg/m³."],
   licenses: [{ label: "Creative Commons Attribution 4.0", identifier: "cc-by-4.0", url: "https://creativecommons.org/licenses/by/4.0/" }],
   version: "2.1",
   subjects: ["Air pollution"],
@@ -75,6 +81,12 @@ assert.deepEqual(work.datasetMetadata, {
   accessUrls: ["https://zenodo.org/records/123/files/air.csv"],
   updated: "2026-01-02T00:00:00Z"
 });
+const methodsOnly = normalizeWork({ attributes: {
+  types: { resourceTypeGeneral: "Dataset" },
+  descriptions: [{ descriptionType: "Methods", description: "Repeated sensor calibration." }]
+} });
+assert.equal(methodsOnly.datasetMetadata.description, "", "Methods must not be mislabeled as the dataset abstract");
+assert.deepEqual(methodsOnly.datasetMetadata.methods, ["Repeated sensor calibration."]);
 
 const restricted = normalizeWork({ id: "10.5555/closed.1", attributes: {
   doi: "10.5555/closed.1",
@@ -89,6 +101,10 @@ const unknownLicense = normalizeWork({ id: "10.5555/unknown.1", attributes: {
 } });
 assert.equal(restricted.openAccess, false);
 assert.equal(unknownLicense.openAccess, null);
+const unclearLicense = { ...unknownLicense, id: "unclear-license", datasetMetadata: {
+  ...unknownLicense.datasetMetadata,
+  licenses: [{ label: "CC BY-NC 4.0" }]
+} };
 
 const crossrefDataset = normalizeCrossrefWork({
   DOI: "10.5555/crossref.1",
@@ -122,8 +138,15 @@ const openAlexDataset = normalizeOpenAlexWork({
 assert.equal(openAlexDataset.datasetMetadata.publisher, "Figshare");
 assert.equal(openAlexDataset.openAccess, null, "OpenAlex read access does not declare a dataset reuse license");
 assert.equal(openAlexDataset.datasetMetadata.description, "Forest measurements");
-assert.deepEqual(openAlexDataset.datasetMetadata.accessUrls, ["https://figshare.com/articles/dataset/1"]);
+assert.deepEqual(openAlexDataset.datasetMetadata.accessUrls, [], "A repository landing page must not be presented as a direct data file");
 assert.deepEqual(openAlexDataset.datasetMetadata.creators[0].affiliations, ["Federal University"]);
+const openAlexFile = normalizeOpenAlexWork({
+  id: "https://openalex.org/W2",
+  display_name: "Downloadable dataset",
+  type: "dataset",
+  primary_location: { landing_page_url: "https://figshare.com/datasets/2", pdf_url: "https://figshare.com/files/data.csv" }
+});
+assert.deepEqual(openAlexFile.datasetMetadata.accessUrls, ["https://figshare.com/files/data.csv"]);
 
 const options = datasetFilterOptions([work, restricted, unknownLicense]);
 assert.deepEqual(options.repositories, ["Zenodo"]);
@@ -131,8 +154,26 @@ assert.deepEqual(options.formats, ["application/netcdf", "text/csv"]);
 assert.deepEqual(filterDatasets([work, restricted, unknownLicense], { repository: "Zenodo" }), [work]);
 assert.deepEqual(filterDatasets([work, restricted, unknownLicense], { format: "text/csv" }), [work]);
 assert.deepEqual(filterDatasets([work, restricted, unknownLicense], { hasRelated: true }), [work]);
+assert.equal(hasRelatedPublication({ related: [{ resourceType: "Text", relation: "IsSupplementTo" }] }), true);
+assert.equal(hasRelatedPublication({ related: [{ resourceType: "Dataset", relation: "IsVersionOf" }] }), false,
+  "Related datasets must not satisfy the publication filter");
+assert.equal(filterDatasets([
+  work,
+  { ...work, id: "related-dataset", datasetMetadata: { ...work.datasetMetadata, related: [{ resourceType: "Dataset" }] } }
+], { hasRelated: true }).length, 1);
 assert.deepEqual(filterDatasets([work, restricted, unknownLicense], { location: "são paulo" }), [work]);
 assert.equal(filterDatasets([work, restricted, unknownLicense], { openLicenseOnly: true }).length, 1);
+const comparison = datasetComparisonRows([work, restricted, unknownLicense, unclearLicense]);
+assert.deepEqual(comparison.find(row => row.key === "datasetFileAvailability")?.values, [{ count: 1 }, null, null, null]);
+assert.deepEqual(comparison.find(row => row.key === "datasetLicenseStatus")?.values, ["open", "restricted", "unknown", "other"]);
+assert.equal(comparison.find(row => row.key === "datasetRelated")?.values[0][0].relation, "IsSupplementTo");
+assert.equal(comparison.find(row => row.key === "datasetDataMethods")?.values[0], "Sensors were calibrated before hourly sampling.");
+assert.equal(comparison.find(row => row.key === "datasetTechnicalInfo")?.values[0], "Each row is one hourly observation; PM2.5 is measured in µg/m³.");
+const lowReadiness = { id: "missing-metadata", datasetMetadata: { accessUrls: [], licenses: [], formats: [], description: "" } };
+const highReadiness = { id: "ready-to-use", datasetMetadata: { accessUrls: ["https://repo.org/data.csv"], licenses: [{ identifier: "cc-by-4.0" }], formats: ["text/csv"], description: "Documented data" } };
+assert.deepEqual(rankDatasets([lowReadiness, highReadiness], "relevance"), [highReadiness, lowReadiness]);
+assert.deepEqual(rankDatasets([lowReadiness, highReadiness], "newest"), [lowReadiness, highReadiness],
+  "Explicit user sorts must keep their source order");
 
 const merged = mergeWorks({ ...work, datasetMetadata: {
   ...work.datasetMetadata,

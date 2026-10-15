@@ -167,13 +167,22 @@
     </div>
     <p class="references-dialog-description" id="references-dialog-description" data-i18n="referencesDialogDescription">Sua lista fica salva neste navegador enquanto você faz novas pesquisas.</p>
     <p class="references-dialog-count" id="references-count" aria-live="polite"></p>
+    <p class="dataset-compare-note" id="dataset-compare-note" data-i18n="datasetCompareLimit">Selecione dois ou três datasets salvos para comparar lado a lado.</p>
     <div class="references-empty" id="references-empty" hidden>
       <h3 data-i18n="favoritesEmptyTitle">Sua lista está vazia</h3>
       <p data-i18n="favoritesEmptyText">Adicione referências pelos resultados para exportá-las juntas.</p>
     </div>
     <ol class="references-list" id="references-list" aria-label="Referências selecionadas" data-i18n-aria-label="favoritesTitle"></ol>
+    <section class="dataset-comparison" id="dataset-comparison" hidden aria-labelledby="dataset-comparison-title">
+      <div class="dataset-comparison-heading">
+        <h3 id="dataset-comparison-title" data-i18n="datasetCompareTitle">Comparar datasets</h3>
+        <button id="dataset-comparison-back" class="references-clear" type="button" data-i18n="datasetCompareBack">Voltar à lista salva</button>
+      </div>
+      <div class="dataset-comparison-scroll" id="dataset-comparison-scroll" role="region" aria-labelledby="dataset-comparison-title" tabindex="0"></div>
+    </section>
     <div class="reference-list-toolbar">
       <button id="references-clear" class="references-clear" type="button" disabled data-i18n="clearReferenceList">Limpar lista</button>
+      <button id="dataset-compare-button" class="dataset-compare-button" type="button" disabled data-i18n="datasetCompareButton">Comparar datasets (0/3)</button>
       <label class="export-choice" for="export-format"><span data-i18n="format">Formato</span>
         <select id="export-format" aria-label="Formato da exportação" data-i18n-aria-label="exportFormat">
           <option value="bibtex">BibTeX</option>

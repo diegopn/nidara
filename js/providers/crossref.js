@@ -65,8 +65,8 @@ export function normalizeWork(work) {
   const doiUrl = doi ? "https://doi.org/" + doi : "";
   const url = doiUrl || safeExternalUrl(work.URL);
   const publicationDate = work.published?.["date-parts"]?.[0] || work.issued?.["date-parts"]?.[0];
-  const authors = (work.author || []).slice(0, 8).map(author => [author.given, author.family].filter(Boolean).join(" ").trim()).filter(Boolean);
-  const authorProfiles = (work.author || []).slice(0, 8).map(author => {
+  const authors = (work.author || []).map(author => [author.given, author.family].filter(Boolean).join(" ").trim()).filter(Boolean);
+  const authorProfiles = (work.author || []).map(author => {
     const name = [author.given, author.family].filter(Boolean).join(" ").trim();
     if (!name) return null;
     return {
@@ -78,7 +78,7 @@ export function normalizeWork(work) {
   }).filter(Boolean);
   const type = typeof work.type === "string" ? work.type : "";
   const abstract = stripMarkup(work.abstract || "").slice(0, 8000);
-  const authorProfilesForDataset = (work.author || []).slice(0, 12).map(author => ({
+  const authorProfilesForDataset = (work.author || []).map(author => ({
     name: [author.given, author.family].filter(Boolean).join(" ").trim(),
     orcid: safeExternalUrl(author.ORCID),
     affiliations: (Array.isArray(author.affiliation) ? author.affiliation : []).map(affiliation => typeof affiliation === "string" ? affiliation : affiliation?.name).filter(Boolean)

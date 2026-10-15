@@ -44,8 +44,8 @@ export function normalizeWork(work) {
   const url = doi
     ? "https://doi.org/" + doi
     : safeExternalUrl(work.primary_location?.landing_page_url) || openAlexUrl;
-  const authors = (work.authorships || []).slice(0, 8).map(entry => entry.author?.display_name).filter(Boolean);
-  const authorProfiles = (work.authorships || []).slice(0, 8).map(entry => {
+  const authors = (work.authorships || []).map(entry => entry.author?.display_name).filter(Boolean);
+  const authorProfiles = (work.authorships || []).map(entry => {
     const author = entry.author || {};
     const name = typeof author.display_name === "string" ? author.display_name.trim() : "";
     if (!name) return null;
@@ -73,13 +73,13 @@ export function normalizeWork(work) {
     locations: [],
     periods: [],
     funding: [],
-    creators: (work.authorships || []).slice(0, 12).map(entry => ({
+    creators: (work.authorships || []).map(entry => ({
       name: entry.author?.display_name || "",
       orcid: safeExternalUrl(entry.author?.orcid || entry.raw_orcid),
       affiliations: (entry.institutions || []).map(institution => institution.display_name).filter(Boolean)
     })).filter(creator => creator.name),
     related: [],
-    accessUrls: [safeExternalUrl(work.primary_location?.landing_page_url)].filter(Boolean),
+    accessUrls: [safeExternalUrl(work.primary_location?.pdf_url)].filter(Boolean),
     updated: ""
   } : undefined;
 

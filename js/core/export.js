@@ -2,7 +2,7 @@ import { t } from "./i18n.js";
 
 export function exportWorks(works, format, query = "pesquisa") {
   if (!works.length) throw new Error("Não há registros carregados para exportar.");
-  const content = format === "csv" ? toCsv(works) : format === "ris" ? toRis(works) : toBibtex(works);
+  const content = serializeWorks(works, format);
   const extension = format === "csv" ? "csv" : format === "ris" ? "ris" : "bib";
   const mime = format === "csv" ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8";
   const fileName = (query || "pesquisa").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "pesquisa";
@@ -15,6 +15,14 @@ export function exportWorks(works, format, query = "pesquisa") {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+}
+
+export function serializeWorks(works, format) {
+  if (!Array.isArray(works) || works.length === 0) throw new Error("Não há registros carregados para exportar.");
+  if (format === "csv") return toCsv(works);
+  if (format === "ris") return toRis(works);
+  if (format === "bibtex") return toBibtex(works);
+  throw new Error("Formato de exportação não reconhecido.");
 }
 
 function toCsv(works) {
@@ -43,7 +51,7 @@ function csvField(value) {
 
 function toRis(works) {
   return works.map(work => {
-    const lines = ["TY  - " + (work.type === "dataset" ? "DATA" : work.type === "book" || work.type === "monograph" ? "BOOK" : "GEN"), "TI  - " + risField(work.title)];
+    const lines = ["TY  - " + risType(work.type), "TI  - " + risField(work.title)];
     for (const author of work.authors || []) lines.push("AU  - " + risField(author));
     if (work.year) lines.push("PY  - " + work.year);
     if (work.journal) lines.push("JO  - " + risField(work.journal));
@@ -55,6 +63,16 @@ function toRis(works) {
   }).join("\r\n\r\n");
 }
 
+function risType(type) {
+  const normalized = String(type || "").toLowerCase().replace(/_/g, "-");
+  if (normalized === "dataset") return "DATA";
+  if (["book", "monograph"].includes(normalized)) return "BOOK";
+  if (["book-chapter", "book-section"].includes(normalized)) return "CHAP";
+  if (["proceedings-article", "conference-paper", "conferencepaper"].includes(normalized)) return "CONF";
+  if (["article", "journal-article"].includes(normalized)) return "JOUR";
+  return "GEN";
+}
+
 function risField(value) {
   return String(value ?? "").replace(/[\r\n]+/g, " ").trim();
 }
@@ -63,7 +81,11 @@ function toBibtex(works) {
   return works.map((work, index) => {
     const firstAuthor = (work.authors?.[0] || "nidara").split(/\s+/).at(-1);
     const key = (firstAuthor + (work.year || "") + (index + 1)).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/gi, "").toLowerCase();
-    const entryType = work.type === "book" || work.type === "monograph" ? "book" : work.type === "article" || work.type === "journal-article" ? "article" : "misc";
+    const type = String(work.type || "").toLowerCase().replace(/_/g, "-");
+    const entryType = ["book", "monograph"].includes(type) ? "book"
+      : ["book-chapter", "book-section"].includes(type) ? "incollection"
+        : ["proceedings-article", "conference-paper", "conferencepaper"].includes(type) ? "inproceedings"
+          : ["article", "journal-article"].includes(type) ? "article" : "misc";
     const fields = [
       ["title", work.title],
       ["author", (work.authors || []).join(" and ")],

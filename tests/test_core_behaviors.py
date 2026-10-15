@@ -37,3 +37,9 @@ class CoreBehaviorTests(unittest.TestCase):
 
     def test_dataset_metadata_filters_and_datacite_search(self):
         self.run_node_test("datasets.test.mjs")
+
+    def test_exports_preserve_bibliographic_types_authors_and_safe_csv(self):
+        self.run_node_test("export.test.mjs")
+
+    def test_shared_search_url_preserves_dataset_refinements(self):
+        self.run_node_test("search-url.test.mjs")

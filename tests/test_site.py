@@ -92,6 +92,16 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('data-view="datasets"', self.html)
         self.assertIn('data-i18n="authorScope"', self.html)
 
+    def test_publication_type_filter_does_not_scope_the_author_view(self):
+        self.assertIn("publicationTypeField.hidden = !publicationTypeFilterVisible(activeView)", self.app)
+        self.assertIn("type: searchTypeForView(activeView, activeFilters.publicationType)", self.app)
+        self.assertIn('data-view="authors"', self.html)
+
+    def test_saved_datasets_can_be_compared_accessibly(self):
+        for element_id in ("dataset-compare-button", "dataset-comparison", "dataset-comparison-back", "dataset-comparison-scroll"):
+            self.assertIn(f'id="{element_id}"', self.html)
+        self.assertIn("datasetComparisonRows(works)", self.app)
+
     def test_tab_counts_keep_their_values_when_switching_result_types(self):
         self.assertIn('mergeResultCounts(viewResultCounts, queryType,', self.app)
         self.assertIn('updateResultCounts(searchFilters.type, loadedItems)', self.app)
@@ -170,7 +180,7 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIsNotNone(clear_search)
         self.assertIn('navigation?.type !== "reload"', clear_search.group(1))
         self.assertIn('queryInput.value = ""', clear_search.group(1))
-        self.assertIn('["q", "from", "to", "period", "type", "pubType", "oa", "sort", "sources", "view", "author"]', clear_search.group(1))
+        self.assertIn('["q", "from", "to", "period", "type", "pubType", "oa", "sort", "sources", "view", "author", "repo", "format", "related", "location"]', clear_search.group(1))
         self.assertIn("url.searchParams.delete(key)", clear_search.group(1))
         self.assertRegex(self.app, r"const reloaded = clearSearchFromUrlOnReload\(\);[\s\S]*?if \(!reloaded\) filtersFromUrl\(\);")
 
@@ -207,7 +217,7 @@ class SiteIntegrityTests(unittest.TestCase):
         })
 
     def test_result_cards_are_compact_and_add_references_at_the_bottom(self):
-        card = re.search(r"function resultCard\(work\) \{([\s\S]*?)\n\}", self.app)
+        card = re.search(r"function resultCard\(work\) \{([\s\S]*?)\n\}\n\nfunction toggleFavorite", self.app)
         self.assertIsNotNone(card)
         self.assertNotIn("work.abstract", card.group(1))
         self.assertNotIn('t("fieldAbstract")', card.group(1))
@@ -232,6 +242,48 @@ class SiteIntegrityTests(unittest.TestCase):
 
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
         self.assertNotIn(".source-tag", css)
+
+    def test_datasets_have_research_metadata_cards_and_refinement_controls(self):
+        self.assertIn('function datasetCard(work)', self.app)
+        for field in ("description", "licenses", "version", "formats", "sizes", "locations", "funding", "related"):
+            self.assertIn(f"metadata.{field}", self.app)
+        self.assertIn('datasetFiltersPanel.hidden = activeView !== "datasets" || !activeFilters || !datasets.length', self.app)
+        self.assertIn('sourceIds: [...DEFAULT_SOURCES]', self.app)
+        self.assertIn('const DEFAULT_SOURCES = ["openalex", "crossref", "datacite"]', self.app)
+        self.assertIn('{ id: "datacite", label: "DataCite", supports: ["dataset"]', (ROOT / "js/providers/index.js").read_text(encoding="utf-8"))
+
+        for element_id in ("dataset-filters", "dataset-repository", "dataset-format", "dataset-related-only", "dataset-location"):
+            self.assertIn(f'id="{element_id}"', self.html)
+        self.assertIn('id="dataset-download-sort"', self.html)
+        self.assertIn('.dataset-facts', (ROOT / "css/style.css").read_text(encoding="utf-8"))
+
+        messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
+        for locale, values in messages.items():
+            for key in ("datasetViewNote", "datasetYearPrecision", "datasetRepositoryFilter", "datasetFormatFilter", "datasetRelatedOnly", "datasetLocationFilter", "datasetFilteredCount", "datasetNoLicense", "datasetMetadataGaps", "datasetFieldFile", "datasetOpenRepository"):
+                self.assertTrue(values.get(key), f"Missing {key} in {locale}")
+
+        self.assertIn('if (!metadata.accessUrls?.length) gaps.push(t("datasetFieldFile"))', self.app)
+        self.assertIn('accessUrls: [safeExternalUrl(work.primary_location?.pdf_url)].filter(Boolean)', (ROOT / "js/providers/openalex.js").read_text(encoding="utf-8"))
+
+    def test_dataset_refinements_round_trip_through_shared_search_urls(self):
+        self.assertIn('writeDatasetFilters(url.searchParams, pendingDatasetFilters || currentDatasetFilters())', self.app)
+        self.assertIn('pendingDatasetFilters = readDatasetFilters(url.searchParams)', self.app)
+        self.assertIn('function updateDatasetRefinements()', self.app)
+        self.assertIn('datasetLocation.addEventListener("input", updateDatasetRefinements)', self.app)
+        utility = (ROOT / "js/core/search-url.js").read_text(encoding="utf-8")
+        self.assertIn('searchParams.get("repo")', utility)
+        self.assertIn('searchParams.get("format")', utility)
+        self.assertIn('searchParams.get("related") === "1"', utility)
+        self.assertIn('searchParams.get("location")', utility)
+        self.assertIn("const restoreFocus = document.activeElement === select", self.app)
+        self.assertIn("if (restoreFocus) select.focus({ preventScroll: true })", self.app)
+
+    def test_repository_describes_all_live_metadata_sources_and_count_limits(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("DataCite", readme)
+        self.assertIn("precisão de ano", readme)
+        self.assertIn("registros repetidos", readme)
+        self.assertNotRegex(readme, r"(?im)^.*(?:npm|rodar localmente|executar localmente).*$")
 
     def test_publication_cards_use_a_distinct_surface_color(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
@@ -328,7 +380,8 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('id="publication-type"', self.html)
         self.assertIn('id="publication-type-field"', self.html)
         self.assertIn('openAccessOnly: openAccessInput.checked', self.app)
-        self.assertIn('type: activeView === "datasets" ? "dataset" : activeFilters.publicationType', self.app)
+        self.assertIn("publicationTypeField.hidden = !publicationTypeFilterVisible(activeView)", self.app)
+        self.assertIn("type: searchTypeForView(activeView, activeFilters.publicationType)", self.app)
 
     def test_authors_show_available_profiles_and_open_relevant_publications_in_a_dialog(self):
         for element_id in ("author-dialog", "author-dialog-title", "author-dialog-description", "author-publications"):
@@ -342,10 +395,18 @@ class SiteIntegrityTests(unittest.TestCase):
             self.assertTrue(all(key in locale for locale in translations.values()), key)
 
     def test_saving_a_modal_reference_preserves_the_author_button_for_focus_return(self):
-        toggle = re.search(r"function toggleFavorite\(work\) \{([\s\S]*?)\n\}", self.app)
+        toggle = re.search(r"function toggleFavorite\(work[^)]*\) \{([\s\S]*?)\n\}", self.app)
         self.assertIsNotNone(toggle)
-        self.assertIn("if (!authorDialog.open) renderCurrentItems()", toggle.group(1))
+        self.assertIn("if (!authorDialog.open) {", toggle.group(1))
         self.assertIn("authorDialogTrigger?.isConnected", self.app)
+
+    def test_saving_a_result_preserves_keyboard_focus_after_the_card_rerenders(self):
+        toggle = re.search(r"function toggleFavorite\(work[^)]*\) \{([\s\S]*?)\n\}", self.app)
+        self.assertIsNotNone(toggle)
+        self.assertIn("document.activeElement === focusButton", toggle.group(1))
+        self.assertIn("renderCurrentItems()", toggle.group(1))
+        self.assertIn("focusTarget?.focus()", toggle.group(1))
+        self.assertIn("save.dataset.workKey = key", self.app)
 
     def test_desktop_sort_control_is_right_aligned_and_stays_on_one_line(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
@@ -583,26 +644,23 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn("actions/deploy-pages@v4", workflow)
         self.assertIn("scripts/build_site.py --output dist", workflow)
         self.assertIn("path: dist", workflow)
+        self.assertIn("github.event.pull_request.number || github.ref", workflow)
+        self.assertNotRegex(workflow, r"(?m)^\s*group:\s*pages\s*$")
+
+    def test_locale_pages_have_search_metadata_and_alternate_language_links(self):
+        expected = {
+            "": ("Nidara — Descoberta científica aberta", "Pesquise e conecte publicações científicas em fontes abertas."),
+            "en": ("Nidara — Open scientific discovery", "Search and connect scientific publications across open sources."),
+            "es": ("Nidara — Descubrimiento científico abierto", "Busca y conecta publicaciones científicas en fuentes abiertas."),
+        }
+        for route, (title, description) in expected.items():
+            page = self.site / route / "index.html" if route else self.site / "index.html"
+            html = page.read_text(encoding="utf-8")
+            self.assertIn(f"<title>{title}</title>", html)
+            self.assertIn(f'<meta name="description" content="{description}">', html)
+            alternates = dict(re.findall(r'<link rel="alternate" hreflang="([^"]+)" href="([^"]+)"', html))
+            self.assertEqual(set(alternates), {"pt-BR", "en", "es", "x-default"})
 
 
 if __name__ == "__main__":
     unittest.main()
-
-    def test_datasets_have_research_metadata_cards_and_refinement_controls(self):
-        self.assertIn('function datasetCard(work)', self.app)
-        for field in ("description", "licenses", "version", "formats", "sizes", "locations", "funding", "related"):
-            self.assertIn(f"metadata.{field}", self.app)
-        self.assertIn('datasetFiltersPanel.hidden = activeView !== "datasets" || !activeFilters || !datasets.length', self.app)
-        self.assertIn('sourceIds: [...DEFAULT_SOURCES]', self.app)
-        self.assertIn('const DEFAULT_SOURCES = ["openalex", "crossref", "datacite"]', self.app)
-        self.assertIn('{ id: "datacite", label: "DataCite", supports: ["dataset"]', (ROOT / "js/providers/index.js").read_text(encoding="utf-8"))
-
-        for element_id in ("dataset-filters", "dataset-repository", "dataset-format", "dataset-related-only", "dataset-location"):
-            self.assertIn(f'id="{element_id}"', self.html)
-        self.assertIn('id="dataset-download-sort"', self.html)
-        self.assertIn('.dataset-facts', (ROOT / "css/style.css").read_text(encoding="utf-8"))
-
-        messages = json.loads((self.site / "js/core/translations.json").read_text(encoding="utf-8"))
-        for locale, values in messages.items():
-            for key in ("datasetViewNote", "datasetRepositoryFilter", "datasetFormatFilter", "datasetRelatedOnly", "datasetLocationFilter", "datasetFilteredCount", "datasetNoLicense", "datasetMetadataGaps", "datasetOpenRepository"):
-                self.assertTrue(values.get(key), f"Missing {key} in {locale}")

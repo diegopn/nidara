@@ -48,6 +48,8 @@ export function normalizeWork(record) {
     publisher: publisherName(attributes.publisher),
     resourceType: String(attributes.types?.resourceType || "").trim(),
     description: abstract,
+    methods: methodsFrom(attributes.descriptions),
+    technicalInfo: technicalInfoFrom(attributes.descriptions),
     licenses,
     version: String(attributes.version || "").trim(),
     subjects: uniqueStrings(asArray(attributes.subjects).map(subject => subject?.subject)),
@@ -66,7 +68,7 @@ export function normalizeWork(record) {
     id: doi || url,
     providerId: "datacite",
     title: selectWorkTitle(asArray(attributes.titles).map(title => cleanText(title?.title))),
-    authors: creators.slice(0, 12).map(creator => cleanText(creator?.name)).filter(Boolean),
+    authors: creators.map(creator => cleanText(creator?.name)).filter(Boolean),
     authorProfiles: normalizeCreators(creators).map(creator => ({
       name: creator.name,
       profileUrl: creator.orcid,
@@ -103,7 +105,22 @@ function buildQuery(query, yearFrom, yearTo, fromDate, toDate) {
 function descriptionFrom(descriptions) {
   const entries = Array.isArray(descriptions) ? descriptions : [];
   const abstract = entries.find(entry => String(entry?.descriptionType || "").toLowerCase() === "abstract");
-  return cleanText(abstract?.description || entries.find(entry => entry?.description)?.description || "").slice(0, 8000);
+  const other = entries.find(entry => entry?.description && !["methods", "technicalinfo"].includes(String(entry?.descriptionType || "").toLowerCase()));
+  return cleanText(abstract?.description || other?.description || "").slice(0, 8000);
+}
+
+function methodsFrom(descriptions) {
+  return descriptionsOfType(descriptions, "methods");
+}
+
+function technicalInfoFrom(descriptions) {
+  return descriptionsOfType(descriptions, "technicalinfo");
+}
+
+function descriptionsOfType(descriptions, type) {
+  return uniqueStrings((Array.isArray(descriptions) ? descriptions : [])
+    .filter(entry => String(entry?.descriptionType || "").toLowerCase() === type)
+    .map(entry => entry?.description));
 }
 
 function normalizeLicenses(rightsList) {
@@ -127,7 +144,7 @@ function isOpenLicense(license) {
 }
 
 function normalizeCreators(creators) {
-  return creators.slice(0, 12).map(creator => {
+  return creators.map(creator => {
     const identifiers = Array.isArray(creator?.nameIdentifiers) ? creator.nameIdentifiers : [];
     const orcidEntry = identifiers.find(item => /orcid/i.test(item?.nameIdentifierScheme || "")) || identifiers.find(item => /orcid\.org/i.test(item?.nameIdentifier || ""));
     const rawOrcid = String(orcidEntry?.nameIdentifier || "").trim();
