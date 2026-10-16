@@ -313,9 +313,9 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIsNotNone(dark)
         self.assertIsNotNone(system_dark)
         for variables, values in (
-            (light.group(1), ("#f5f3ed", "#35594f", "#2e4b42", "#35594f")),
-            (dark.group(1), ("#242831", "#35594f", "#2e4b42", "#35594f")),
-            (system_dark.group(1), ("#242831", "#35594f", "#2e4b42", "#35594f")),
+            (light.group(1), ("#f8faf8", "#2e5b47", "#264a3a", "#2e5b47")),
+            (dark.group(1), ("#242825", "#315c43", "#3b6a4b", "#4b7056")),
+            (system_dark.group(1), ("#242825", "#315c43", "#3b6a4b", "#4b7056")),
         ):
             for name, value in zip(("--result-surface", "--save-surface", "--save-hover-surface", "--save-border"), values):
                 self.assertIn(f"{name}: {value}", variables)
@@ -462,8 +462,8 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertTrue(icon.is_file())
         self.assertIn('viewBox="0 0 64 64"', icon.read_text(encoding="utf-8"))
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
-        self.assertIn("--page-surface: #fbfaf7", css)
-        self.assertIn("--accent: #426b62", css)
+        self.assertIn("--page-surface: #ffffff", css)
+        self.assertIn("--accent: #3e6f5b", css)
 
     def test_footer_places_the_project_mark_left_and_creator_link_right(self):
         footer = re.search(r"<footer>([\s\S]*?)</footer>", self.html)
@@ -507,19 +507,19 @@ class SiteIntegrityTests(unittest.TestCase):
             },
         )
 
-    def test_dark_theme_uses_soft_slate_colors_instead_of_green_surfaces(self):
+    def test_dark_theme_uses_neutral_charcoal_colors_with_green_actions(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
-        self.assertIn("--page-surface: #171b24", css)
-        self.assertIn("--hero-surface: #1e2430", css)
-        self.assertIn("--research-surface: #272e3b", css)
-        self.assertNotIn("--page-surface: #18221f", css)
-        self.assertNotIn("--research-surface: #202e29", css)
+        self.assertIn("--page-surface: #181a18", css)
+        self.assertIn("--hero-surface: #1f2220", css)
+        self.assertIn("--research-surface: #292d2a", css)
+        self.assertNotIn("--page-surface: #171b24", css)
+        self.assertNotIn("--research-surface: #272e3b", css)
 
         dark = re.search(r':root\[data-theme="dark"\]\s*\{([^}]*)\}', css)
         self.assertIsNotNone(dark)
-        self.assertIn("--button-bg: #426b62", dark.group(1))
+        self.assertIn("--button-bg: #447653", dark.group(1))
         self.assertIn("--button-text: #ffffff", dark.group(1))
-        self.assertIn("--button-hover: #527d72", dark.group(1))
+        self.assertIn("--button-hover: #508864", dark.group(1))
 
     def test_hero_heading_uses_amiri(self):
         css = (ROOT / "css/style.css").read_text(encoding="utf-8")
