@@ -12,10 +12,12 @@ O idioma selecionado aparece no endereço da página. Links compartilhados prese
 
 ## Pesquisa
 
-- Consulta OpenAlex e Crossref para publicações e autores, e DataCite para conjuntos de dados, com indicação de respostas parciais.
+- Consulta OpenAlex, Crossref e DataCite para publicações, autores e datasets conforme a cobertura de cada catálogo, com indicação de respostas parciais.
+- Busca direcionada de datasets sem substituir as pesquisas de publicações e autores.
 - Filtros por intervalo de anos e tipo de publicação, ordenação e paginação.
+- Fichas de datasets priorizam licença e acesso informados, documentação disponível e publicações relacionadas; a ordenação por completude não representa adequação científica ao tema.
 - Deduplicação por DOI sem combinar publicações que só tenham títulos parecidos. Os totais das fontes podem incluir registros repetidos entre catálogos.
-- Itens salvos neste navegador e exportação BibTeX, RIS ou CSV.
+- Itens salvos neste navegador; exportação BibTeX, RIS e CSV bibliográfico, além de uma ficha CSV específica para datasets salvos.
 - Tema claro ou escuro e layout adaptado a telas pequenas.
 
 ## Publicação

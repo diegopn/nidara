@@ -78,7 +78,10 @@
                 <p class="filter-note" id="open-access-note" data-i18n="openAccessFilterNote">Com base nos metadados da fonte; a disponibilidade de link direto pode variar.</p>
               </div>
             </fieldset>
-            <button id="search-button" type="submit"><span data-i18n="searchButton">Pesquisar</span> <span aria-hidden="true">→</span></button>
+            <div class="search-actions">
+              <button id="search-button" type="submit"><span data-i18n="searchButton">Pesquisar</span> <span aria-hidden="true">→</span></button>
+              <button id="dataset-search-button" class="dataset-search-button" type="button" data-i18n="datasetSearchShortcut">Pesquisar datasets</button>
+            </div>
           </form>
         </div>
       </div>
@@ -188,6 +191,7 @@
           <option value="bibtex">BibTeX</option>
           <option value="ris">RIS</option>
           <option value="csv">CSV</option>
+          <option id="dataset-csv-format" value="dataset-csv" data-i18n="datasetCsvFormat" hidden disabled>Ficha de datasets (CSV)</option>
         </select>
       </label>
       <button id="export-button" class="export-button" type="button" disabled>
