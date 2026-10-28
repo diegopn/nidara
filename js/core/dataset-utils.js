@@ -73,21 +73,27 @@ export function hasRelatedPublication(metadata = {}) {
 
 export function rankDatasets(works, sort = "relevance") {
   if (sort !== "relevance") return works;
-  return works.map((work, index) => ({ work, index, score: datasetReadinessScore(work) }))
+  return works.map((work, index) => ({ work, index, score: datasetMetadataCompletenessScore(work) }))
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map(entry => entry.work);
 }
 
-export function datasetReadinessScore(work) {
+export function datasetMetadataCompletenessScore(work) {
   const metadata = work.datasetMetadata || {};
-  let score = 0;
-  if ((metadata.accessUrls || []).some(value => typeof value === "string" && value.trim())) score += 4;
-  if (work.openAccess === true) score += 3;
-  else if ((metadata.licenses || []).some(license => license?.label || license?.identifier || license?.url)) score += 1;
-  if ((metadata.formats || []).some(value => typeof value === "string" && value.trim())) score += 2;
-  if (String(metadata.description || work.abstract || "").trim()) score += 1;
-  if (hasRelatedPublication(metadata)) score += 1;
-  return score;
+  return [
+    metadata.publisher || work.journal,
+    metadata.description || work.abstract,
+    metadata.creators?.length || work.authors?.length,
+    metadata.licenses?.length,
+    metadata.formats?.length,
+    metadata.accessUrls?.length,
+    metadata.subjects?.length,
+    metadata.periods?.length || work.year,
+    metadata.locations?.length,
+    metadata.methods?.length,
+    metadata.technicalInfo?.length,
+    metadata.related?.length
+  ].filter(Boolean).length;
 }
 
 function normalize(value) {

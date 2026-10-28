@@ -79,7 +79,7 @@ export function normalizeWork(work) {
       affiliations: (entry.institutions || []).map(institution => institution.display_name).filter(Boolean)
     })).filter(creator => creator.name),
     related: [],
-    accessUrls: [safeExternalUrl(work.primary_location?.pdf_url)].filter(Boolean),
+    accessUrls: [],
     updated: ""
   } : undefined;
 

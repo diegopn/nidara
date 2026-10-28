@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { normalizeWork, searchWorks } from "../js/providers/datacite.js";
 import { normalizeWork as normalizeCrossrefWork } from "../js/providers/crossref.js";
 import { normalizeWork as normalizeOpenAlexWork } from "../js/providers/openalex.js";
-import { filterDatasets, datasetComparisonRows, datasetFilterOptions, hasRelatedPublication, rankDatasets } from "../js/core/dataset-utils.js";
+import { filterDatasets, datasetComparisonRows, datasetFilterOptions, datasetMetadataCompletenessScore, hasRelatedPublication, rankDatasets } from "../js/core/dataset-utils.js";
 import { federatedSearch } from "../js/core/federated-search.js";
 import { mergeWorks } from "../js/core/work-utils.js";
 
@@ -146,7 +146,7 @@ const openAlexFile = normalizeOpenAlexWork({
   type: "dataset",
   primary_location: { landing_page_url: "https://figshare.com/datasets/2", pdf_url: "https://figshare.com/files/data.csv" }
 });
-assert.deepEqual(openAlexFile.datasetMetadata.accessUrls, ["https://figshare.com/files/data.csv"]);
+assert.deepEqual(openAlexFile.datasetMetadata.accessUrls, [], "A PDF link is not reliable evidence of a direct dataset file");
 
 const options = datasetFilterOptions([work, restricted, unknownLicense]);
 assert.deepEqual(options.repositories, ["Zenodo"]);
@@ -172,6 +172,12 @@ assert.equal(comparison.find(row => row.key === "datasetTechnicalInfo")?.values[
 const lowReadiness = { id: "missing-metadata", datasetMetadata: { accessUrls: [], licenses: [], formats: [], description: "" } };
 const highReadiness = { id: "ready-to-use", datasetMetadata: { accessUrls: ["https://repo.org/data.csv"], licenses: [{ identifier: "cc-by-4.0" }], formats: ["text/csv"], description: "Documented data" } };
 assert.deepEqual(rankDatasets([lowReadiness, highReadiness], "relevance"), [highReadiness, lowReadiness]);
+const listedRestrictedLicense = { id: "listed-license", openAccess: null, datasetMetadata: { licenses: [{ label: "Terms listed" }] } };
+const explicitlyOpenLicense = { id: "open-license", openAccess: true, datasetMetadata: { licenses: [{ label: "CC BY 4.0" }] } };
+assert.equal(datasetMetadataCompletenessScore(listedRestrictedLicense), datasetMetadataCompletenessScore(explicitlyOpenLicense),
+  "Metadata completeness must not treat an open license as more complete than another listed license");
+assert.deepEqual(rankDatasets([listedRestrictedLicense, explicitlyOpenLicense], "relevance"), [listedRestrictedLicense, explicitlyOpenLicense],
+  "Ties in metadata completeness must keep their existing order");
 assert.deepEqual(rankDatasets([lowReadiness, highReadiness], "newest"), [lowReadiness, highReadiness],
   "Explicit user sorts must keep their source order");
 

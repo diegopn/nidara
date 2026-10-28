@@ -1,5 +1,5 @@
 import { exportWorks } from "./core/export.js";
-import { datasetComparisonRows, datasetFilterOptions, filterDatasets, rankDatasets } from "./core/dataset-utils.js";
+import { datasetComparisonRows, datasetFilterOptions, filterDatasets, hasRelatedPublication, rankDatasets } from "./core/dataset-utils.js";
 import { federatedSearch } from "./core/federated-search.js";
 import { summarizeAuthors as summarizeAuthorRecords, worksForAuthor } from "./core/author-utils.js";
 import { formatNumber, getLanguage, pluralMessage, setLanguage, t } from "./core/i18n.js";
@@ -36,6 +36,7 @@ const title = document.querySelector("#results-title");
 const count = document.querySelector("#count");
 const more = document.querySelector("#more");
 const searchButton = document.querySelector("#search-button");
+const datasetSearchButton = document.querySelector("#dataset-search-button");
 const savedToggle = document.querySelector("#saved-toggle");
 const savedCount = document.querySelector("#saved-count");
 const referencesDialog = document.querySelector("#references-dialog");
@@ -52,6 +53,7 @@ const datasetComparisonScroll = document.querySelector("#dataset-comparison-scro
 const exportCount = document.querySelector("#export-count");
 const exportButton = document.querySelector("#export-button");
 const exportFormat = document.querySelector("#export-format");
+const datasetCsvOption = document.querySelector("#dataset-csv-format");
 const languageSwitcher = document.querySelector("#language-switcher");
 const viewTabs = [...document.querySelectorAll(".result-tab")];
 const viewNote = document.querySelector("#view-note");
@@ -141,8 +143,12 @@ function persistFavorites(nextFavorites) {
 
 function renderSavedReferences() {
   const works = [...favorites.values()];
-  const savedDatasetKeys = new Set(works.filter(isDataset).map(workKey));
+  const savedDatasets = works.filter(isDataset);
+  const savedDatasetKeys = new Set(savedDatasets.map(workKey));
   selectedDatasetKeys = new Set([...selectedDatasetKeys].filter(key => savedDatasetKeys.has(key)));
+  datasetCsvOption.hidden = savedDatasets.length === 0;
+  datasetCsvOption.disabled = savedDatasets.length === 0;
+  if (!savedDatasets.length && exportFormat.value === "dataset-csv") exportFormat.value = "csv";
   exportCount.textContent = String(works.length);
   exportButton.disabled = works.length === 0;
   referencesClear.disabled = works.length === 0;
@@ -339,6 +345,7 @@ function updateViewControls(publications, authors, datasets) {
   updateDatasetFilterControls(datasets);
   datasetDownloadSort.hidden = activeView !== "datasets";
   datasetDownloadSort.disabled = activeView !== "datasets";
+  sortSelect.querySelector('option[value="relevance"]').textContent = t(activeView === "datasets" ? "sortDatasetCompleteness" : "sortRelevance");
   const loadMoreLabel = more.querySelector("[data-i18n]");
   if (loadMoreLabel) loadMoreLabel.textContent = t(activeView === "authors" ? "loadMoreAuthors" : "loadMore");
 }
@@ -653,6 +660,9 @@ function toggleFavorite(work, focusButton = null) {
 
 function datasetCard(work) {
   const metadata = work.datasetMetadata || {};
+  const description = metadata.description || work.abstract || "";
+  const methods = metadata.methods || [];
+  const technicalInfo = metadata.technicalInfo || [];
   const article = element("article", "result dataset-card");
   const badges = element("div", "result-badges");
   badges.append(element("span", "type-tag", t("typeDataset")));
@@ -678,6 +688,30 @@ function datasetCard(work) {
     article.append(recordLink);
   }
 
+  const reuseSection = element("section", "dataset-section dataset-reuse");
+  reuseSection.append(element("h4", null, t("datasetQuickAssessment")));
+  const reuseFacts = document.createElement("dl");
+  reuseFacts.className = "dataset-facts dataset-reuse-facts";
+  appendDatasetLicenseFact(reuseFacts, metadata.licenses || [], work.openAccess);
+  appendDatasetFact(reuseFacts, "datasetFileAvailability", metadata.accessUrls?.length
+    ? t("datasetFilesReported", { count: formatNumber(metadata.accessUrls.length) })
+    : t("datasetFileLinksMissing"));
+  appendDatasetFact(reuseFacts, "datasetDocumentation", description || methods.length || technicalInfo.length
+    ? t("datasetDocumentationReported")
+    : t("datasetDocumentationMissing"));
+  appendDatasetFact(reuseFacts, "datasetPublicationEvidence", hasRelatedPublication(metadata)
+    ? t("datasetPublicationEvidenceReported")
+    : t("datasetPublicationEvidenceMissing"));
+  reuseSection.append(reuseFacts);
+  if (metadata.accessUrls?.length) {
+    const files = element("div", "dataset-files");
+    for (const [index, url] of metadata.accessUrls.slice(0, 6).entries()) {
+      files.append(externalLink(url, t("datasetOpenFile", { number: formatNumber(index + 1) })));
+    }
+    reuseSection.append(files);
+  }
+  article.append(reuseSection);
+
   const creators = metadata.creators?.length ? metadata.creators : (work.authors || []).map(name => ({ name, affiliations: [] }));
   if (creators.length) {
     const creatorSection = element("section", "dataset-section dataset-creators");
@@ -694,7 +728,6 @@ function datasetCard(work) {
     article.append(creatorSection);
   }
 
-  const description = metadata.description || work.abstract || "";
   if (description) {
     const descriptionSection = element("section", "dataset-section dataset-description");
     descriptionSection.append(element("h4", null, t("datasetDescription")));
@@ -717,31 +750,13 @@ function datasetCard(work) {
   appendDatasetFact(profileFacts, "datasetCoverage", metadata.locations?.join(" · "));
   appendDatasetFact(profileFacts, "datasetFormats", metadata.formats?.join(" · "));
   appendDatasetFact(profileFacts, "datasetSizes", metadata.sizes?.join(" · "));
-  appendDatasetFact(profileFacts, "datasetDataMethods", shortDatasetText((metadata.methods || []).join(" · "), 260));
-  appendDatasetFact(profileFacts, "datasetTechnicalInfo", shortDatasetText((metadata.technicalInfo || []).join(" · "), 260));
+  appendDatasetFact(profileFacts, "datasetDataMethods", shortDatasetText(methods.join(" · "), 260));
+  appendDatasetFact(profileFacts, "datasetTechnicalInfo", shortDatasetText(technicalInfo.join(" · "), 260));
   if (profileFacts.childElementCount) {
     const profile = element("section", "dataset-section dataset-profile");
     profile.append(element("h4", null, t("datasetDataProfile")), profileFacts);
     article.append(profile);
   }
-
-  const reuseSection = element("section", "dataset-section dataset-reuse");
-  reuseSection.append(element("h4", null, t("datasetReuse")));
-  const reuseFacts = document.createElement("dl");
-  reuseFacts.className = "dataset-facts dataset-reuse-facts";
-  appendDatasetLicenseFact(reuseFacts, metadata.licenses || [], work.openAccess);
-  appendDatasetFact(reuseFacts, "datasetFileAvailability", metadata.accessUrls?.length
-    ? t("datasetFilesReported", { count: formatNumber(metadata.accessUrls.length) })
-    : t("datasetFileLinksMissing"));
-  reuseSection.append(reuseFacts);
-  if (metadata.accessUrls?.length) {
-    const files = element("div", "dataset-files");
-    for (const [index, url] of metadata.accessUrls.slice(0, 6).entries()) {
-      files.append(externalLink(url, t("datasetOpenFile", { number: formatNumber(index + 1) })));
-    }
-    reuseSection.append(files);
-  }
-  article.append(reuseSection);
 
   if (metadata.related?.length) {
     const relatedSection = element("section", "dataset-section dataset-related");
@@ -1075,6 +1090,7 @@ async function runSearch(append = false) {
 
   list.setAttribute("aria-busy", "true");
   searchButton.disabled = true;
+  datasetSearchButton.disabled = true;
   more.disabled = true;
   more.hidden = !append;
   setStatus(append ? t("loadingMore") : t("searching"));
@@ -1103,16 +1119,17 @@ async function runSearch(append = false) {
     if (!signal.aborted && currentRequest === requestId) {
       list.setAttribute("aria-busy", "false");
       searchButton.disabled = false;
+      datasetSearchButton.disabled = false;
       more.disabled = false;
       renderCurrentItems();
     }
   }
 }
 
-form.addEventListener("submit", event => {
-  event.preventDefault();
+function submitSearch(view = activeView) {
   const filters = readFiltersFromForm();
-  if (!filters) return;
+  if (!filters) return false;
+  activeView = view;
   selectedAuthor = "";
   showAllAuthors = false;
   const datasetScopeChanged = !activeFilters || ["query", "fromDate", "toDate", "openAccessOnly"].some(key => activeFilters[key] !== filters[key]);
@@ -1121,7 +1138,15 @@ form.addEventListener("submit", event => {
   viewResultCounts = { publications: null, authors: null, datasets: null };
   updateShareUrl(filters);
   runSearch();
+  return true;
+}
+
+form.addEventListener("submit", event => {
+  event.preventDefault();
+  submitSearch();
 });
+
+datasetSearchButton.addEventListener("click", () => submitSearch("datasets"));
 
 more.addEventListener("click", () => runSearch(true));
 authorsMore.addEventListener("click", () => {

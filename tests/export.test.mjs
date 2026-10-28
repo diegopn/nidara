@@ -29,4 +29,39 @@ const csv = serializeWorks([{ title: "=HYPERLINK(\"https://example.org\")", auth
 assert.ok(csv.includes("'=HYPERLINK"), "CSV cells beginning with formulas must be neutralized");
 assert.ok(csv.includes("'-1+1"), "CSV cells beginning with a minus sign must be neutralized");
 
+const dataset = {
+  type: "dataset",
+  title: "Air observations",
+  authors: ["Ana Lima"],
+  year: 2024,
+  doi: "10.5555/air.1",
+  url: "https://doi.org/10.5555/air.1",
+  openAccess: true,
+  sources: [{ label: "DataCite" }],
+  datasetMetadata: {
+    publisher: "Zenodo",
+    landingPage: "https://zenodo.org/records/123",
+    description: "Air quality measurements",
+    methods: ["Hourly measurements"],
+    technicalInfo: ["PM2.5 in µg/m³"],
+    licenses: [{ label: "CC BY 4.0", url: "https://creativecommons.org/licenses/by/4.0/" }],
+    formats: ["text/csv"],
+    sizes: ["15 MB"],
+    periods: ["2023–2024"],
+    locations: ["São Paulo, Brazil"],
+    subjects: ["Air pollution"],
+    accessUrls: ["=HYPERLINK(\"https://zenodo.org/records/123/files/air.csv\")"],
+    related: [{ title: "Study of air pollution", url: "https://doi.org/10.5555/study.1", resourceType: "Text", relation: "IsSupplementTo" }],
+    version: "2.1",
+    updated: "2026-01-02T00:00:00Z"
+  }
+};
+const datasetCsv = serializeWorks([complete, dataset], "dataset-csv");
+assert.ok(datasetCsv.startsWith("\uFEFF"), "Dataset shortlist CSV must open cleanly in spreadsheet applications");
+assert.ok(datasetCsv.includes("Zenodo") && datasetCsv.includes("CC BY 4.0"));
+assert.ok(datasetCsv.includes("Hourly measurements") && datasetCsv.includes("São Paulo, Brazil"));
+assert.ok(datasetCsv.includes("'=HYPERLINK"), "Dataset links must keep CSV formula injection protection");
+assert.ok(!datasetCsv.includes("Full authorship"), "Dataset shortlist CSV must include datasets only");
+assert.throws(() => serializeWorks([complete], "dataset-csv"), /Não há registros carregados para exportar/);
+
 console.log("Bibliographic exports passed.");

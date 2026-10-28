@@ -3,8 +3,9 @@ import { t } from "./i18n.js";
 export function exportWorks(works, format, query = "pesquisa") {
   if (!works.length) throw new Error("Não há registros carregados para exportar.");
   const content = serializeWorks(works, format);
-  const extension = format === "csv" ? "csv" : format === "ris" ? "ris" : "bib";
-  const mime = format === "csv" ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8";
+  const csvExport = format === "csv" || format === "dataset-csv";
+  const extension = csvExport ? "csv" : format === "ris" ? "ris" : "bib";
+  const mime = csvExport ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8";
   const fileName = (query || "pesquisa").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "pesquisa";
   const blob = new Blob([content], { type: mime });
   const downloadUrl = URL.createObjectURL(blob);
@@ -20,6 +21,7 @@ export function exportWorks(works, format, query = "pesquisa") {
 export function serializeWorks(works, format) {
   if (!Array.isArray(works) || works.length === 0) throw new Error("Não há registros carregados para exportar.");
   if (format === "csv") return toCsv(works);
+  if (format === "dataset-csv") return toDatasetCsv(works.filter(work => String(work.type || "").toLowerCase() === "dataset"));
   if (format === "ris") return toRis(works);
   if (format === "bibtex") return toBibtex(works);
   throw new Error("Formato de exportação não reconhecido.");
@@ -40,6 +42,54 @@ function toCsv(works) {
     work.abstract,
     work.url
   ]);
+  return csvDocument(headers, rows);
+}
+
+function toDatasetCsv(works) {
+  if (!works.length) throw new Error("Não há registros carregados para exportar.");
+  const headers = [
+    "csvDatasetTitle", "csvDatasetCreators", "csvDatasetRepository", "csvDatasetYear", "csvDatasetDoi",
+    "csvDatasetLandingPage", "csvDatasetLicense", "csvDatasetLicenseStatus", "csvDatasetFormats",
+    "csvDatasetPeriod", "csvDatasetCoverage", "csvDatasetSubjects", "csvDatasetMethods",
+    "csvDatasetTechnicalInfo", "csvDatasetDescription", "csvDatasetDataLinks", "csvDatasetRelatedRecords",
+    "csvDatasetVersion", "csvDatasetUpdated", "csvDatasetDownloads", "csvDatasetViews", "csvDatasetCitations",
+    "csvDatasetSources"
+  ].map(key => t(key));
+  const rows = works.map(work => {
+    const metadata = work.datasetMetadata || {};
+    const licenseStatus = work.openAccess === true ? t("datasetOpenLicense")
+      : work.openAccess === false ? t("datasetRestrictedLicense")
+        : metadata.licenses?.length ? t("datasetLicenseOther") : t("datasetLicenseUnknown");
+    return [
+      work.title,
+      (metadata.creators?.length ? metadata.creators.map(creator => typeof creator === "string" ? creator : creator.name) : work.authors || []).filter(Boolean).join("; "),
+      metadata.publisher || work.journal,
+      work.year ?? "",
+      work.doi,
+      metadata.landingPage || work.url,
+      (metadata.licenses || []).map(license => license.label || license.identifier || license.url).filter(Boolean).join("; "),
+      licenseStatus,
+      (metadata.formats || []).join("; "),
+      (metadata.periods || []).join("; "),
+      (metadata.locations || []).join("; "),
+      (metadata.subjects || []).join("; "),
+      (metadata.methods || []).join("; "),
+      (metadata.technicalInfo || []).join("; "),
+      metadata.description || work.abstract,
+      (metadata.accessUrls || []).join("; "),
+      (metadata.related || []).map(record => [record.title || record.url, record.resourceType, record.relation].filter(Boolean).join(" — ")).join("; "),
+      metadata.version,
+      metadata.updated,
+      work.downloads ?? "",
+      work.views ?? "",
+      work.citations ?? "",
+      (work.sources || []).map(source => source.label).join("; ")
+    ];
+  });
+  return csvDocument(headers, rows);
+}
+
+function csvDocument(headers, rows) {
   return "\uFEFF" + [headers, ...rows].map(row => row.map(csvField).join(",")).join("\r\n");
 }
 

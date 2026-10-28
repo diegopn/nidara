@@ -92,6 +92,15 @@ class SiteIntegrityTests(unittest.TestCase):
         self.assertIn('data-view="datasets"', self.html)
         self.assertIn('data-i18n="authorScope"', self.html)
 
+    def test_dataset_search_is_an_optional_entry_to_the_existing_results(self):
+        self.assertIn('id="dataset-search-button"', self.html)
+        self.assertIn('id="search-button"', self.html)
+        self.assertIn('datasetSearchButton.addEventListener("click", () => submitSearch("datasets"))', self.app)
+        self.assertIn('data-view="publications"', self.html)
+        self.assertIn('data-view="authors"', self.html)
+        self.assertIn('data-view="datasets"', self.html)
+        self.assertIn('sortDatasetCompleteness', self.app)
+
     def test_publication_type_filter_does_not_scope_the_author_view(self):
         self.assertIn("publicationTypeField.hidden = !publicationTypeFilterVisible(activeView)", self.app)
         self.assertIn("type: searchTypeForView(activeView, activeFilters.publicationType)", self.app)
@@ -263,7 +272,16 @@ class SiteIntegrityTests(unittest.TestCase):
                 self.assertTrue(values.get(key), f"Missing {key} in {locale}")
 
         self.assertIn('if (!metadata.accessUrls?.length) gaps.push(t("datasetFieldFile"))', self.app)
-        self.assertIn('accessUrls: [safeExternalUrl(work.primary_location?.pdf_url)].filter(Boolean)', (ROOT / "js/providers/openalex.js").read_text(encoding="utf-8"))
+        self.assertIn('accessUrls: []', (ROOT / "js/providers/openalex.js").read_text(encoding="utf-8"))
+
+    def test_dataset_shortlist_export_is_optional_and_preserves_existing_formats(self):
+        self.assertIn('id="dataset-csv-format"', self.html)
+        export = (ROOT / "js/core/export.js").read_text(encoding="utf-8")
+        self.assertIn('format === "dataset-csv"', export)
+        self.assertIn('format === "csv"', export)
+        self.assertIn('format === "ris"', export)
+        self.assertIn('format === "bibtex"', export)
+        self.assertIn('datasetCsvOption.hidden = savedDatasets.length === 0', self.app)
 
     def test_dataset_refinements_round_trip_through_shared_search_urls(self):
         self.assertIn('writeDatasetFilters(url.searchParams, pendingDatasetFilters || currentDatasetFilters())', self.app)
