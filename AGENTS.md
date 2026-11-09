@@ -1,48 +1,47 @@
-# Guia para agentes
+# Project Guidance
 
-Este arquivo dá contexto e orienta assistentes de programação que trabalham no repositório Nidara.
+## Project overview
 
-## O projeto
+Nidara is a static web platform for open scientific discovery. It helps researchers find publications, authors, and datasets in public academic catalogs.
 
-Nidara é uma plataforma web estática de descoberta científica aberta, criada por Diego Pereira do Nascimento. Ajuda pesquisadores a encontrar publicações, autores e conjuntos de dados em catálogos acadêmicos públicos.
+Brazilian Portuguese is the default language. English and Spanish are served at `/en/` and `/es/`. Publication and author searches use OpenAlex and Crossref; dataset searches use DataCite. Coverage and metadata quality vary by source, so results can be partial.
 
-O português brasileiro é o idioma padrão. As versões em inglês e espanhol ficam nas rotas `/en/` e `/es/`. A busca consulta OpenAlex e Crossref para publicações e autores e DataCite para conjuntos de dados. A cobertura e a qualidade dos metadados variam entre fontes; o sistema pode apresentar resultados parciais.
+## Behaviors to preserve
 
-## Comportamentos a preservar
+- Keep the three result categories, dedicated dataset search, filters, pagination, and sorting.
+- Preserve the in-browser saved-record list across searches and retain BibTeX, RIS, general CSV, and dataset CSV exports.
+- Preserve queries and filters in shareable links, and keep the Portuguese, English, and Spanish routes and translations aligned.
+- Deduplicate records by DOI when possible; do not combine publications only because their titles are similar.
+- Treat licenses, data links, documentation, and related records as information supplied by the source. Do not infer that a record is open, available, or suitable for a study when the metadata does not say so.
+- Completeness sorting measures metadata presence; do not describe it as relevance or scientific quality.
+- Preserve accessibility, keyboard navigation, loading states, and small-screen layouts.
 
-- Mantenha as três categorias de resultados, a busca direcionada de datasets, os filtros, a paginação e a ordenação.
-- Preserve a lista de referências no navegador, sua disponibilidade durante novas buscas e as opções BibTeX, RIS, CSV geral e CSV de datasets.
-- Preserve os filtros e a consulta nos links compartilháveis e mantenha as rotas e traduções de PT-BR, inglês e espanhol coerentes.
-- Deduplicate registros pelo DOI quando possível; não una publicações apenas porque os títulos são parecidos.
-- Trate licença, links de dados, documentação e relações como informações fornecidas pela fonte. Não presuma que um dado está aberto, disponível ou adequado ao estudo quando os metadados não dizem isso.
-- A ordenação por completude mede a presença de metadados; não deve ser descrita como relevância ou qualidade científica.
-- Preserve acessibilidade, navegação por teclado, estados de carregamento e adaptação a telas pequenas.
+## Project structure
 
-## Organização
+- `index.html`: Brazilian Portuguese base page and interface structure.
+- `css/style.css`: styles, themes, and responsive rules.
+- `js/app.js`: application startup, interface interactions, and search coordination.
+- `js/core/`: reusable search, author, dataset, filter, URL, translation, export, and normalization logic.
+- `js/providers/`: requests and response normalization for OpenAlex, Crossref, and DataCite.
+- `js/core/translations.json`: interface text. Every key must exist in `pt-BR`, `en`, and `es`.
+- `assets/`: icons and other static assets.
+- `scripts/build_site.py`: builds static routes and files in `dist/` from source files.
+- `tests/`: Python checks and JavaScript behavior tests.
+- `.github/workflows/pages.yml`: checks pull requests to `develop` and `main`, and publishes after a push to `main`.
+- `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, and `CODE_OF_CONDUCT.md`: license and project policies; update them only when relevant to the requested work.
 
-- `index.html`: página-base em português brasileiro e estrutura da interface.
-- `css/style.css`: estilos, temas e regras responsivas.
-- `js/app.js`: inicialização, interação da interface e coordenação das buscas.
-- `js/core/`: funções reutilizáveis para busca federada, autores, datasets, filtros, URLs, traduções, exportação e normalização.
-- `js/providers/`: consultas e normalização das respostas de OpenAlex, Crossref e DataCite.
-- `js/core/translations.json`: textos da interface. Toda chave usada deve existir em `pt-BR`, `en` e `es`.
-- `assets/`: ícones e demais arquivos estáticos.
-- `scripts/build_site.py`: gera as rotas estáticas e os arquivos prontos para publicação em `dist/` a partir dos arquivos-fonte.
-- `tests/`: verificações Python e testes de comportamento JavaScript.
-- `.github/workflows/pages.yml`: verifica o projeto em pull requests e publica o site após atualizações de `main`.
-- `LICENSE` e `SECURITY.md`: licença e política de segurança; alterações nesses documentos devem ser intencionais e consistentes com o pedido do mantenedor.
+## Change guidelines
 
-## Regras para mudanças
+- Make the smallest complete change and reuse existing functions before adding new layers or dependencies.
+- Put every new user-visible string in `translations.json` in all three languages; Brazilian Portuguese remains the default.
+- Treat external responses as untrusted data. Insert text with safe DOM APIs, validate external URLs, and never interpret metadata as HTML.
+- Edit source files, not generated output in `dist/`.
+- Write Markdown documentation in English.
+- Keep the README focused on public project information; do not add local setup instructions there.
+- Preserve the copyright and notices in `LICENSE`.
 
-- Prefira a menor alteração que resolva o problema e reutilize as funções existentes antes de criar novas camadas ou dependências.
-- Coloque cada novo texto visível em `translations.json` nos três idiomas; mantenha PT-BR como padrão.
-- Trate respostas externas como dados não confiáveis. Insira texto com APIs seguras do DOM, valide URLs externas e não interprete metadados como HTML.
-- Edite os arquivos-fonte, não o conteúdo gerado em `dist/`.
-- O README é voltado à apresentação pública do projeto; não acrescente instruções para executar o projeto localmente.
-- Preserve os créditos e avisos de direitos autorais definidos em `LICENSE`.
+## Verification guidance
 
-## Verificação
-
-- Para a suíte usada na publicação, execute `python3 -m unittest discover -s tests -v`. Em ambientes sem Node.js, os testes JavaScript chamados pela suíte são ignorados; registre essa limitação ao relatar a verificação.
-- Depois de alterar páginas, rotas ou ativos de publicação, gere o site com `python3 scripts/build_site.py --output dist` e confira as rotas principal, `/en/` e `/es/`.
-- Antes de concluir, verifique o diff e confirme que as alterações não removem comportamentos listados acima.
+- The publication workflow runs `python3 -m unittest discover -s tests -v`. JavaScript checks are skipped by the suite when Node.js is unavailable; report that limitation when relevant.
+- After changing pages, routes, or publication assets, generate the site with `python3 scripts/build_site.py --output dist` and check the main, `/en/`, and `/es/` routes.
+- Review the diff before completion and confirm that the changes preserve the behaviors listed above.

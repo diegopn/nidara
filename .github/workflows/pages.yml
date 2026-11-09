@@ -1,9 +1,9 @@
-name: Verificar e publicar site
+name: Verify and publish site
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [develop, main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,12 +14,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Baixar repositório
+      - name: Check out repository
         uses: actions/checkout@v4
-      - name: Verificar site
+      - name: Run site checks
         run: python3 -m unittest discover -s tests -v
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: verify
     permissions:
       contents: read
@@ -30,16 +30,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Baixar repositório
+      - name: Check out repository
         uses: actions/checkout@v4
-      - name: Gerar rotas e arquivos estáticos
+      - name: Build static routes and files
         run: python3 scripts/build_site.py --output dist
-      - name: Configurar GitHub Pages
+      - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Enviar arquivos do site
+      - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-      - name: Publicar
+      - name: Deploy site
         id: deployment
         uses: actions/deploy-pages@v4
