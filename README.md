@@ -57,15 +57,6 @@ If Nidara is useful in your research, you can support its continued development.
 
 Read the [contribution guidelines](CONTRIBUTING.md), [Code of Conduct](CODE_OF_CONDUCT.md), and [security policy](SECURITY.md) before participating.
 
-## Project files
-
-| Path | Purpose |
-| --- | --- |
-| `index.html`, `css/`, `js/` | App shell, styles, search, source integrations, and translations |
-| `scripts/build_site.py` | Builds the English and Spanish routes from the Portuguese source |
-| `tests/` | Python and JavaScript checks used before publication |
-| `.github/workflows/pages.yml` | Verifies pull requests and publishes the site after changes reach `main` |
-
 ## License
 
 Nidara is distributed under the [MIT License](LICENSE).
