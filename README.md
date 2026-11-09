@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://diegopn.github.io/nidara/">Open Nidara</a> ·
   <a href="https://diegopn.github.io/nidara/en/">English</a> ·
-  <a href="https://diegopn.github.io/nidara/es/">Español</a>
+  <a href="https://diegopn.github.io/nidara/es/">Spanish</a>
 </p>
 
 <p align="center">
