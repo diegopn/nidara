@@ -1,26 +1,26 @@
-# Política de segurança
+# Security Policy
 
-## Versões com suporte
+## Supported versions
 
-O Nidara não publica versões numeradas. Correções de segurança se aplicam ao commit mais recente da branch `main`; commits anteriores não recebem manutenção.
+Nidara does not publish numbered releases. The version currently published from `main` is supported; older commits are not maintained.
 
-## Reportar uma vulnerabilidade
+## Report a vulnerability
 
-Use o [reporte privado de vulnerabilidades do GitHub](https://github.com/diegopn/nidara/security/advisories/new), se estiver disponível. Não publique detalhes exploráveis em issues, discussões ou pull requests.
+Use [GitHub's private vulnerability reporting](https://github.com/diegopn/nidara/security/advisories/new), when available. Do not post exploitable details in public issues, discussions, or pull requests.
 
-Se o reporte privado não estiver disponível, abra uma issue pedindo apenas um canal privado para contato. Não inclua nela detalhes técnicos, arquivos afetados, provas de conceito ou passos de exploração.
+If private reporting is unavailable, open an issue asking for a private contact channel. Do not include technical details, affected files, proof-of-concept code, or exploitation steps in that issue.
 
-Para ajudar na análise, inclua no reporte privado:
+Include the following in a private report when relevant:
 
-- a página, arquivo ou commit afetado;
-- passos mínimos para reproduzir o problema e seu impacto provável;
-- uma prova de conceito segura, se necessária;
-- mensagens de erro ou registros relevantes, sem senhas, tokens, dados pessoais ou outros segredos.
+- The affected page, file, or commit.
+- Minimal reproduction steps and the likely impact.
+- A safe proof of concept, if needed.
+- Relevant error messages or logs, with passwords, tokens, personal data, and other secrets removed.
 
-Não acesse dados de terceiros, altere informações, interrompa serviços ou teste sistemas externos sem autorização. Remova dados pessoais e segredos de capturas de tela e exemplos.
+Do not access other people's data, modify information, disrupt services, or test external systems without authorization. Remove personal data and secrets from screenshots and examples.
 
-## Escopo e divulgação
+## Scope and disclosure
 
-Esta política cobre o código do Nidara e sua publicação no GitHub Pages. Vulnerabilidades próprias das APIs da OpenAlex, Crossref ou DataCite devem ser reportadas aos respectivos responsáveis. Problemas na forma como o Nidara consulta ou processa as respostas dessas APIs podem ser reportados aqui.
+This policy covers Nidara's code, its GitHub Pages deployment, and how it requests or processes responses from OpenAlex, Crossref, and DataCite. Vulnerabilities in those providers' APIs should be reported to their respective maintainers; issues in Nidara's handling of provider responses can be reported here.
 
-Os relatos são analisados conforme a disponibilidade do mantenedor; não há prazo garantido para resposta ou correção. Sempre que possível, a divulgação pública será coordenada com quem reportou após a correção estar disponível.
+Reports are reviewed as the maintainer is able; no response or remediation timeline is guaranteed. When possible, public disclosure will be coordinated with the reporter after a fix is available.

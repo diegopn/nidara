@@ -1,49 +1,62 @@
-# Nidara
+<p align="center">
+  <img src="assets/nidara-mark.svg" alt="Nidara mark" width="112" />
+</p>
 
-Plataforma de pesquisa e descoberta científica em fontes acadêmicas abertas, criada por Diego Pereira do Nascimento.
+<h1 align="center">Nidara</h1>
 
-## Idiomas
+<p align="center">Find publications, authors, and research datasets across open academic catalogs.</p>
 
-- Português brasileiro: <https://diegopn.github.io/nidara/>
-- English: <https://diegopn.github.io/nidara/en/>
-- Español: <https://diegopn.github.io/nidara/es/>
+<p align="center">
+  <a href="https://diegopn.github.io/nidara/">Open Nidara</a> ·
+  <a href="https://diegopn.github.io/nidara/en/">English</a> ·
+  <a href="https://diegopn.github.io/nidara/es/">Spanish</a>
+</p>
 
-O idioma selecionado aparece no endereço da página. Links compartilhados preservam a pesquisa, os filtros e o idioma.
+<p align="center">
+  <a href="https://developer.mozilla.org/en-US/docs/Web/HTML"><img alt="HTML5" src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white"></a>
+  <a href="https://developer.mozilla.org/en-US/docs/Web/CSS"><img alt="CSS3" src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white"></a>
+  <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"><img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=111111"></a>
+  <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white"></a>
+</p>
 
-## Pesquisa
+Nidara is a static web app for research discovery. It brings together public metadata from OpenAlex, Crossref, and DataCite to help researchers explore publications, authors, and datasets.
 
-- Consulta OpenAlex, Crossref e DataCite para publicações, autores e datasets conforme a cobertura de cada catálogo, com indicação de respostas parciais.
-- Busca direcionada de datasets sem substituir as pesquisas de publicações e autores.
-- Filtros por intervalo de anos e tipo de publicação, ordenação e paginação.
-- Fichas de datasets priorizam licença e acesso informados, documentação disponível e publicações relacionadas; a ordenação por completude não representa adequação científica ao tema.
-- Deduplicação por DOI sem combinar publicações que só tenham títulos parecidos. Os totais das fontes podem incluir registros repetidos entre catálogos.
-- Itens salvos neste navegador; exportação BibTeX, RIS e CSV bibliográfico, além de uma ficha CSV específica para datasets salvos.
-- Tema claro ou escuro e layout adaptado a telas pequenas.
+## Explore research
 
-## Publicação
+| Find | Refine | Keep and export |
+| --- | --- | --- |
+| Search publications and authors in OpenAlex and Crossref, or search datasets in DataCite. | Filter by year and publication type, sort results, and move through pages. | Save records in this browser and export BibTeX, RIS, or CSV files. |
 
-O GitHub Actions verifica o site e publica as três rotas no GitHub Pages quando há um novo envio para `main`. A fonte do GitHub Pages deve estar configurada como **GitHub Actions**.
+Dataset results show license, access, documentation, and related publications when the source provides those details. The interface supports light and dark themes and adapts to small screens.
 
-## Licença
+## Sources and limits
 
-O código está sob a [licença MIT](LICENSE), que permite uso, modificação, redistribuição e uso comercial. Cópias ou partes substanciais do software devem preservar o aviso de copyright e o texto da licença. O aviso identifica Nidara e inclui o endereço do projeto.
+| Source | Records |
+| --- | --- |
+| [OpenAlex](https://docs.openalex.org/) | Publications and authors |
+| [Crossref](https://www.crossref.org/documentation/retrieve-metadata/rest-api/) | Registered scholarly works and authors |
+| [DataCite](https://support.datacite.org/docs/api) | Research datasets and their metadata |
 
-## Fontes e limites
+Coverage and metadata quality vary by source, so a search can return partial results. Nidara deduplicates records by DOI when possible; similar titles alone are not enough to combine records. DataCite date filters use year-level precision, and totals across catalogs may include duplicates. Completeness sorting measures available metadata, not scientific relevance. Licenses, access, and file links are shown only when supplied by the source; verify them with the original record before reuse.
 
-- [OpenAlex](https://docs.openalex.org/): catálogo bibliográfico consultado pela API pública; o acesso sem chave pode atingir o limite disponível.
-- [Crossref](https://www.crossref.org/documentation/retrieve-metadata/rest-api/): metadados públicos de trabalhos registrados, com cobertura variável conforme a publicação.
-- [DataCite](https://support.datacite.org/docs/api): metadados públicos de conjuntos de dados, incluindo licenças, formatos, financiamento e relações. Os filtros por período enviados à API têm precisão de ano; links diretos a arquivos só são mostrados quando a fonte fornece um.
+Saved records remain in the browser's local storage.
 
-Os metadados e resumos são fornecidos pelas fontes. Confira a publicação original para validar completude, disponibilidade e licença. Itens salvos permanecem no armazenamento local do navegador.
+## Publishing
 
-## Organização dos arquivos
+GitHub Actions verifies pull requests to `develop` and `main`. After a pull request is merged into `main`, the workflow rebuilds the Portuguese, English, and Spanish routes and deploys them to GitHub Pages. Set the Pages source to **GitHub Actions**.
 
-```text
-index.html              # página-base em português brasileiro
-scripts/build_site.py   # gera as rotas estáticas de inglês e espanhol
-css/                    # estilos
-js/core/                # busca, normalização, exportação e traduções
-js/providers/           # integrações com cada fonte
-tests/                  # verificações executadas antes da publicação
-.github/workflows/      # validação e publicação automática
-```
+## Support
+
+If Nidara is useful in your research, you can support its continued development.
+
+<p align="left">
+  <a href="https://github.com/sponsors/diegopn"><img alt="Sponsor Nidara" src="https://img.shields.io/badge/Sponsor_Nidara-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white"></a>
+</p>
+
+## Community
+
+Read the [contribution guidelines](CONTRIBUTING.md), [Code of Conduct](CODE_OF_CONDUCT.md), and [security policy](SECURITY.md) before participating.
+
+## License
+
+Nidara is distributed under the [MIT License](LICENSE).
