@@ -37,7 +37,7 @@ Dataset results show license, access, documentation, and related publications wh
 | [Crossref](https://www.crossref.org/documentation/retrieve-metadata/rest-api/) | Registered scholarly works and authors |
 | [DataCite](https://support.datacite.org/docs/api) | Research datasets and their metadata |
 
-Coverage and metadata quality vary by source, so a search can return partial results. Nidara deduplicates records by DOI when possible; similar titles alone are not enough to combine records. Completeness sorting measures available metadata, not scientific relevance. Licenses, access, and file links are shown only when supplied by the source; verify them with the original record before reuse.
+Coverage and metadata quality vary by source, so a search can return partial results. Nidara deduplicates records by DOI when possible; similar titles alone are not enough to combine records. DataCite date filters use year-level precision, and totals across catalogs may include duplicates. Completeness sorting measures available metadata, not scientific relevance. Licenses, access, and file links are shown only when supplied by the source; verify them with the original record before reuse.
 
 Saved records remain in the browser's local storage.
 
