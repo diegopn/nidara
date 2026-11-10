@@ -299,8 +299,8 @@ class SiteIntegrityTests(unittest.TestCase):
     def test_repository_describes_all_live_metadata_sources_and_count_limits(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("DataCite", readme)
-        self.assertIn("precisão de ano", readme)
-        self.assertIn("registros repetidos", readme)
+        self.assertIn("year-level precision", readme)
+        self.assertIn("totals across catalogs may include duplicates", readme)
         self.assertNotRegex(readme, r"(?im)^.*(?:npm|rodar localmente|executar localmente).*$")
 
     def test_publication_cards_use_a_distinct_surface_color(self):
